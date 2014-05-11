@@ -1,0 +1,55 @@
+Sofia <-> Pernik 28, Botevgrad 64, Pazardzhik 112, Pirdop 80, Montana 109
+Pernik <-> Kustendil 56, Dupnica 53
+Kustendil <-> Dupnica 41, Blagoevgrad 58
+Dupnica <-> Blagoevgrad 32
+Blagoevgrad <-> Sandanski 64, Pazardzhik 155
+Sandanski <-> Kulata 40, Smolian 205,
+Kulata <->
+Botevgrad <-> Vraca 48, Lovech 98, Pleven 110, Tarnovo 168
+Vraca <-> Montana 38,
+Montana <-> Lom 51, Belogradchik 66, Pleven 125, Vidin 91
+Belogradchik <-> Vidin 56
+Lom <-> Vidin 58
+Vidin <-> 
+Lovech <-> Pleven 39, Tarnovo 84, Gabrovo 67, Troian 34, Biala 104
+Pleven <-> Biala 98, 
+Tarnovo <-> Shumen 140, Biala 55, Gabrovo 46, Razgrad 113, Troian 97
+Biala <-> Ruse 54, Razgrad 88, 
+Ruse <-> Razgrad 65, Silistra 120 
+Razgrad <-> Shumen 50, Silistra 110
+Shumen <-> Dobrich 100, Varna 91, Silistra 113
+Dobrich <-> Varna 54, Silistra 90,
+Silistra <->
+Varna <-> Burgas 128,
+Burgas <-> Iambol 91, Sliven 109
+Iambol <-> Plovdiv 169, StaraZagora 83, Haskovo 128, Sliven 30
+Plovdiv <-> StaraZagora 98, Karlovo 60, Kardzhali 95, Smolian 96, Pazardzhik 38
+Karlovo <-> Kazanlak 55, Pirdop 58, Troian 66
+StaraZagora <-> Haskovo 60, Sliven 70
+Kazanlak <-> StaraZagora 34, Gabrovo 48
+Gabrovo <-> 
+Haskovo <-> Kardzhali 47
+Kardzhali <-> Smolian 87
+Smolian <-> 
+Pazardzhik <-> Pirdop 80,
+Pirdop <-> Troian 99
+Troian <-> 
+Sliven <-> 
+
+
+# -------------------
+
+# Pernik - Sofia: [ Pernik, Sofia ]
+# Pernik - Varna: [ Pernik, Sofia, Botevgrad, Tarnovo, Shumen, Varna ]
+# Vidin - Kardzhali: [ Vidin, Montana, Sofia, Pazardzhik, Plovdiv, Kardzhali ]
+# Belogradchik - Burgas: [ Belogradchik, Montana, Sofia, Pazardzhik, Plovdiv, Iambol, Burgas ] 
+# Pernik - Lovech: [ Pernik, Sofia, Botevgrad, Lovech ]
+# Lovech - Haskovo: [ Lovech, Gabrovo, Kazanlak, StaraZagora, Haskovo ]
+# Lovech - Razgrad: [ Lovech, Biala, Razgrad ]
+# Sofia - Tarnovo: [ Sofia, Botevgrad, Tarnovo]
+# Pleven - Kardzhali: [ Pleven, Lovech, Troian, Karlovo, Plovdiv, Kardzhali ]
+
+
+
+
+
