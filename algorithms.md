@@ -1,5 +1,5 @@
 # Algorithms
-This is an incomplete list of the algorithms to be implemented in **Adder**. Most of them are taken straight from [Artificial Intelligence: A modern approach][aima] (the book, not the code repo!) and the course Nonclassical logics for AI taught @ FMI, Sofia University by Dimitar Vakarelov
+This is an incomplete list of the algorithms to be implemented in **Adder**. Most of them are taken straight from [Artificial Intelligence: A modern approach][aima] (the book, not the code repo!) and the course *Nonclassical logics for AI* taught @ FMI, Sofia University by prof. Dimitar Vakarelov
 ## Classical search
 * BFS
 * DFS
