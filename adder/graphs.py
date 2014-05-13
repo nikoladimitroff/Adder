@@ -1,4 +1,5 @@
 from collections import defaultdict
+from itertools import cycle
 import re
 
 class Digraph:
@@ -14,9 +15,8 @@ class Digraph:
         
         return nodes
         
-    @property
-    def edges(self):
-        return self.__edges
+    def children_iter(self, node):
+        return iter(self.__edges[node])
     
     def edge_cost(self, source, destination):
         return self.__edge_costs[(source, destination)]
@@ -39,6 +39,7 @@ class Graph(Digraph):
     def remove_edge(self, source, destination):
         Digraph.remove_edge(self, source, destination)
         Digraph.remove_edge(self, destination, source)
+
         
 class GraphLoader:
     DIRECTED_EDGE_SEPARATOR = "->"

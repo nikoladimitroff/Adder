@@ -2,11 +2,11 @@ from adder import graphs
 import os
 import unittest
 
+import tests.config as config
+
 class GraphFactoryTests(unittest.TestCase):
     def __init__(self, *args):
-    
         unittest.TestCase.__init__(self, *args)
-        self.bulgaria_map_path = os.path.join(os.path.dirname(__file__), "../data/bulgaria.graph")
 
     def fill_sample_graph(self, graph):
         graph.add_edge("A", "B", 1)
@@ -20,11 +20,11 @@ class GraphFactoryTests(unittest.TestCase):
         self.fill_sample_graph(dg)
         
         nodes = dg.get_nodes()
-        self.assertSetEqual(nodes, {"A", "B", "C" })
+        self.assertCountEqual(nodes, {"A", "B", "C" })
         
-        self.assertSetEqual(dg.edges["A"], {"B", "C"})
-        self.assertSetEqual(dg.edges["B"], set())
-        self.assertSetEqual(dg.edges["C"], set())
+        self.assertCountEqual(dg.children_iter("A"), {"B", "C"})
+        self.assertCountEqual(dg.children_iter("B"), set())
+        self.assertCountEqual(dg.children_iter("C"), set())
         
     def test_graph_constructor(self):
         g = graphs.Graph()
@@ -35,42 +35,73 @@ class GraphFactoryTests(unittest.TestCase):
         nodes = g.get_nodes()
         self.assertEqual(nodes, {"A", "B", "C" })
         
-        self.assertSetEqual(g.edges["A"], {"B", "C"})
-        self.assertSetEqual(g.edges["B"], {"A"})
-        self.assertSetEqual(g.edges["C"], {"A"})
+        self.assertCountEqual(g.children_iter("A"), {"B", "C"})
+        self.assertCountEqual(g.children_iter("B"), {"A"})
+        self.assertCountEqual(g.children_iter("C"), {"A"})
         
+    def assert_graph_loaded(self, graph, nodes, edges, is_directed=False):
+        self.assertIsInstance(graph, graphs.Graph if not is_directed else graphs.Digraph)
+        self.assertCountEqual(graph.get_nodes(), nodes)
+        
+        for source in edges:
+            self.assertCountEqual(graph.children_iter(source), {dest for dest, cost in edges[source]})
+            for destination, cost in edges[source]:
+                self.assertEqual(graph.edge_cost(source, destination), cost)
+    
     def assert_bulgaria_map_loaded(self, graph):
-        self.assertIsInstance(graph, graphs.Graph)
         cities = { "Sofia", "Pernik", "Kustendil", "Dupnica", "Blagoevgrad", "Sandanski", "Kulata", "Botevgrad",
             "Vraca", "Montana", "Belogradchik", "Lom", "Vidin", "Lovech", "Pleven", "Tarnovo", "Biala", "Ruse",
             "Razgrad", "Shumen", "Dobrich", "Silistra", "Varna", "Burgas", "Iambol", "Plovdiv", "Karlovo", "StaraZagora",
             "Kazanlak", "Gabrovo", "Haskovo", "Kardzhali", "Smolian", "Pazardzhik" , "Pirdop", "Troian", "Sliven"
         }
         
-        self.assertSetEqual(graph.get_nodes(), cities)
         some_edges = { "Sofia": {("Pernik", 28), ("Botevgrad", 64), ("Pazardzhik", 112), ("Pirdop", 80), ("Montana", 109)},
                         "Pernik": {("Sofia", 28), ("Kustendil", 56), ("Dupnica", 53)},
                         "Troian": {("Lovech", 34), ("Tarnovo", 97), ("Karlovo", 66), ("Pirdop", 99) },
                     }
+        self.assert_graph_loaded(graph, cities, some_edges)
+        
+    def assert_germany_map_loaded(self, graph):
+        cities = { "Frankfurt", "Mannheim", "Wurzburg", "Kassel", "Karlsruhe", "Augsburg",
+                   "Nurnberg", "Erfurt", "Munchen", "Stuttgart"
+                }
+        
+        some_edges = { "Frankfurt": {("Mannheim", 85), ("Wurzburg", 217), ("Kassel", 173)},
+                       "Munchen": {("Augsburg", 84), ("Nurnberg", 167), ("Kassel", 502)},
+                       "Erfurt": {("Wurzburg", 186)},
+                       "Karlsruhe": {("Mannheim", 80), ("Augsburg", 250)},
+                    }
+        self.assert_graph_loaded(graph, cities, some_edges)
+        
+    def assert_romania_map_loaded(self, graph):
+        cities = { "Oradea", "Zerind", "Arad", "Sibiu", "RimnicuVilcea", "Timisoara", "Lugoj", "Mehadia",
+                   "Dobreta", "Pitesti", "Fagaras", "Bucharest", "Urziceni", "Hirsova", "Vaslui",
+                   "Iasi", "Neamt", "Craiova", "Giugiu", "Eforie"
+                }
+                
+        some_edges = { "Bucharest": {("Fagaras", 211), ("Giugiu", 90), ("Urziceni", 85), ("Pitesti", 101)},
+                       "Craiova": {("Dobreta", 120), ("Pitesti", 138), ("RimnicuVilcea", 146)},
+                       "Iasi": {("Neamt", 87), ("Vaslui", 92)},
+                    }
                     
-        for source in some_edges:
-            self.assertSetEqual(graph.edges[source], {dest for dest, cost in some_edges[source]})
-            for destination, cost in some_edges[source]:
-                self.assertEqual(graph.edge_cost(source, destination), cost)
+        self.assert_graph_loaded(graph, cities, some_edges)
         
     def test_graph_load_from_string(self):
-        with open(self.bulgaria_map_path) as file:
-            file_content = file.read()
-        
-        loader = graphs.GraphLoader()
-        graph = loader.from_string(file_content)
-        self.assert_bulgaria_map_loaded(graph)
+        for test_name, path in config.TEST_DATA.items():
+            with open(path) as file:
+                file_content = file.read()
+            
+            loader = graphs.GraphLoader()
+            graph = loader.from_string(file_content)
+            test_func = getattr(self, "assert_{0}_loaded".format(test_name))
+            test_func(graph)
         
     def test_graph_load_from_file(self):
-        loader = graphs.GraphLoader()
-        graph = loader.from_file(self.bulgaria_map_path)
-        self.assert_bulgaria_map_loaded(graph)
-        
+        for test_name, path in config.TEST_DATA.items():
+            loader = graphs.GraphLoader()
+            graph = loader.from_file(path)
+            test_func = getattr(self, "assert_{0}_loaded".format(test_name))
+            test_func(graph)        
         
 if __name__ == "__main__":
     unittest.main()
