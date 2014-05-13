@@ -1,3 +1,4 @@
+# Depends on: adder
 from adder import graphs
 import os
 import unittest
@@ -5,9 +6,6 @@ import unittest
 import tests.config as config
 
 class GraphFactoryTests(unittest.TestCase):
-    def __init__(self, *args):
-        unittest.TestCase.__init__(self, *args)
-
     def fill_sample_graph(self, graph):
         graph.add_edge("A", "B", 1)
         graph.add_edge("A", "C", 1)
