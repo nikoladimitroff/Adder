@@ -73,13 +73,23 @@ class GraphFactoryTests(unittest.TestCase):
         
     def assert_romania_map_loaded(self, graph):
         cities = { "Oradea", "Zerind", "Arad", "Sibiu", "RimnicuVilcea", "Timisoara", "Lugoj", "Mehadia",
-                   "Dobreta", "Pitesti", "Fagaras", "Bucharest", "Urziceni", "Hirsova", "Vaslui",
+                   "Drobeta", "Pitesti", "Fagaras", "Bucharest", "Urziceni", "Hirsova", "Vaslui",
                    "Iasi", "Neamt", "Craiova", "Giugiu", "Eforie"
                 }
                 
         some_edges = { "Bucharest": {("Fagaras", 211), ("Giugiu", 90), ("Urziceni", 85), ("Pitesti", 101)},
-                       "Craiova": {("Dobreta", 120), ("Pitesti", 138), ("RimnicuVilcea", 146)},
+                       "Craiova": {("Drobeta", 120), ("Pitesti", 138), ("RimnicuVilcea", 146)},
                        "Iasi": {("Neamt", 87), ("Vaslui", 92)},
+                    }
+                    
+        self.assert_graph_loaded(graph, cities, some_edges)
+        
+    def assert_bulgaria_disconnected_map_loaded(self, graph):
+        cities = { "Pernik", "Sofia", "Kustendil", "Dupnica", "Varna", "Burgas"}
+                
+        some_edges = { "Pernik": {("Sofia", 28)},
+                       "Kustendil": {("Dupnica", 41)},
+                       "Burgas": {("Varna", 128)},
                     }
                     
         self.assert_graph_loaded(graph, cities, some_edges)

@@ -21,7 +21,7 @@ class _Node:
         
     def __str__(self):
         parent_name = self.parent.state if self.parent else "None"
-        return self.state
+        return self.state + "OMG NODE!"
         return "(State: {0}, Parent: {1}, Action: {2})".format(self.state, parent_name, self.action)
         
     def __repr__(self):
@@ -36,9 +36,10 @@ class _Node:
     @property
     def path_cost(self): return self.__path_cost
 
-class _Problem:
-    FAILURE = "FAILURE"
-    
+FAILURE = "FAILURE"
+SOLUTION_UNKNOWN = "SOLUTION_UNKNOWN"
+
+class _Problem:    
     def child_node(self, node, action):
         parent = node
         state = self.result(node.state, action)
@@ -65,8 +66,7 @@ class _Problem:
         while end_node != self.initial:
             parent = end_node.parent
             if parent.state in [node for node, action in path]:
-                print("failed", parent,)
-                return _Problem.FAILURE
+                return FAILURE
                 
             path.append((end_node.state, end_node.action))           
             end_node = parent
@@ -76,7 +76,7 @@ class _Problem:
         
         
     def solution_cost(self, solution):
-        if solution is _Problem.FAILURE:
+        if solution is FAILURE or solution is SOLUTION_UNKNOWN:
             return 0
             
         cost = 0

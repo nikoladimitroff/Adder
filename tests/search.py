@@ -4,7 +4,8 @@ from adder import graphs
 from adder import problem
 from adder import search
 from tests import config
-from functools import reduce
+
+import functools
 import os
 import unittest
 
@@ -19,14 +20,14 @@ class SearchTests(unittest.TestCase):
         solution[0] = (sequence[0], None)
         return solution
         
-    def run_bfs(self, graph_file_name, start_node, end_node):    
+    def run_search(self, search_algorithm, graph_file_name, start_node, end_node):    
         loader = graphs.GraphLoader()
         graph = loader.from_file(config.TEST_DATA[graph_file_name])
         
         factory = problem.ProblemFactory()
         problem_instance = factory.from_graph(graph, start_node, end_node)
         
-        solution = search.bfs(problem_instance)
+        solution = search_algorithm(problem_instance)
         return (problem_instance, solution)
         
     def assert_cost(self, problem_instance, solution, expected):        
@@ -37,42 +38,123 @@ class SearchTests(unittest.TestCase):
             actual_cost += problem_instance.step_cost(expected[i][0], expected[i + 1][0])
         self.assertEqual(cost, actual_cost)
         
-    def assert_bfs_solution(self, graph_file_name, start_node, end_node, expected_sequence):
+    def assert_solution(self, search_algorithm, graph_file_name, start_node, end_node, expected_sequence):
         expected = self.sequence_to_solution_format(expected_sequence)
-        problem_instance, solution = self.run_bfs(graph_file_name, start_node, end_node)
-        self.assert_cost(problem_instance, solution, expected)
-        self.assertSequenceEqual(solution, expected)
+        problem_instance, solution = self.run_search(search_algorithm, 
+                                        graph_file_name, 
+                                        start_node, 
+                                        end_node)
         
-    def assert_nondetermined_bfs_solution(self, graph_file_name, start_node, end_node, expected_sequences):
+        # If we expect failure and failure is returned, all is well
+        if solution == expected_sequence == problem.FAILURE or \
+           solution == expected_sequence == problem.SOLUTION_UNKNOWN:
+            return
+        # Else, assert that the solution matches the expected
+        self.assertSequenceEqual(solution, expected)
+        self.assert_cost(problem_instance, solution, expected)
+        
+    def assert_nondeterministic_solution(self, search_algorithm, graph_file_name, start_node, end_node, expected_sequences):
         expected = list(map(self.sequence_to_solution_format, expected_sequences))
         has_passed = False
         # Assert all outcomes. If they fail, catch the exceptions and move on.
         # This test passes iff at least one assertion passes
         for expected_outcome in expected:
             try:
-                problem_instance, solution = self.run_bfs(graph_file_name, start_node, end_node)
+                problem_instance, solution = self.run_search(search_algorithm, 
+                                                graph_file_name, 
+                                                start_node, 
+                                                end_node)
                 self.assert_cost(problem_instance, solution, expected_outcome)
                 self.assertSequenceEqual(solution, expected_outcome)
             except AssertionError:
                 pass
             else:
                 has_passed = True
-        self.assertTrue(has_passed, "Nondeterministic bfs test failed for all sequences")
+        self.assertTrue(has_passed, "Nondeterministic test failed for all sequences")
             
-    def test_bfs(self):        
-        self.assert_bfs_solution("germany_map", "Frankfurt", "Karlsruhe", ["Frankfurt", "Mannheim", "Karlsruhe"])
-        self.assert_bfs_solution("germany_map", "Frankfurt", "Munchen", ["Frankfurt", "Kassel", "Munchen"])
-        self.assert_bfs_solution("germany_map", "Stuttgart", "Erfurt", ["Stuttgart", "Nurnberg", "Wurzburg", "Erfurt"])
-        self.assert_bfs_solution("germany_map", "Kassel", "Erfurt", ["Kassel", "Frankfurt", "Wurzburg", "Erfurt"])
-        self.assert_bfs_solution("germany_map", "Kassel", "Kassel", ["Kassel"])
+    
+    def assert_bulgaria_disconnected(self, search_algorithm):   
+        assert_disconnected = functools.partial(self.assert_solution, search_algorithm, "bulgaria_disconnected_map")
+        assert_disconnected("Pernik", "Varna", problem.FAILURE)
+        assert_disconnected("Varna", "Sofia", problem.FAILURE)
+        assert_disconnected("Burgas", "Kustendil", problem.FAILURE)
+            
+class BfsTests(SearchTests):
+    def test_bulgaria_disconnected(self):   
+        self.assert_bulgaria_disconnected(search.bfs)
+        
+    def test_germany(self):   
+        assert_bfs = functools.partial(self.assert_solution, search.bfs, "germany_map")
+        assert_bfs("Frankfurt", "Karlsruhe", ["Frankfurt", "Mannheim", "Karlsruhe"])
+        assert_bfs("Frankfurt", "Munchen", ["Frankfurt", "Kassel", "Munchen"])
+        assert_bfs("Stuttgart", "Erfurt", ["Stuttgart", "Nurnberg", "Wurzburg", "Erfurt"])
+        assert_bfs("Kassel", "Erfurt", ["Kassel", "Frankfurt", "Wurzburg", "Erfurt"])
+        assert_bfs("Kassel", "Kassel", ["Kassel"])
         
         # Some nondetermined outcomes
+        assert_bfs_nondeterministic = functools.partial(
+                                        self.assert_nondeterministic_solution, 
+                                        search.bfs, 
+                                        "germany_map")
         solutions = [
             ["Frankfurt", "Mannheim", "Karlsruhe", "Augsburg"],
             ["Frankfurt", "Kassel", "Munchen", "Augsburg"]
         ]
-        self.assert_nondetermined_bfs_solution("germany_map", "Frankfurt", "Augsburg", solutions)
+        
+        assert_bfs_nondeterministic("Frankfurt", "Augsburg", solutions)
+        
+    def test_romania(self):  
+        assert_bfs = functools.partial(self.assert_solution, search.bfs, "romania_map")
+        assert_bfs("Arad", "Bucharest", ["Arad", "Sibiu", "Fagaras", "Bucharest"])
+        
+        # Some nondetermined outcomes
+        assert_bfs_nondeterministic = functools.partial(
+                                        self.assert_nondeterministic_solution, 
+                                        search.bfs, 
+                                        "romania_map")
+        solutions_rv_lugoj = [
+            ["RimnicuVilcea", "Craiova", "Drobeta", "Mehadia", "Lugoj"],
+            ["RimnicuVilcea", "Sibiu", "Arad", "Timisoara", "Lugoj"]
+        ]
+        solutions_oradea_lugoj = [
+            ["Oradea", "Zerind", "Arad", "Timisoara", "Lugoj"],
+            ["Oradea", "Sibiu", "Arad", "Timisoara", "Lugoj"],        
+        ]
+        
+        assert_bfs_nondeterministic("RimnicuVilcea", "Lugoj", solutions_rv_lugoj)
+        assert_bfs_nondeterministic("Oradea", "Lugoj", solutions_oradea_lugoj)
+        
+class DlsTests(SearchTests):
+    def test_bulgaria_disconnected(self):   
+        search_algo = lambda problem: search.depth_limited_search(problem, 5)
+        self.assert_bulgaria_disconnected(search_algo)
+        
+    def test_germany(self):   
+        assert_dls_0 = functools.partial(self.assert_solution, 
+                        lambda problem: search.depth_limited_search(problem, 0), 
+                        "germany_map")
+        assert_dls_2 = functools.partial(self.assert_solution, 
+                        lambda problem: search.depth_limited_search(problem, 2), 
+                        "germany_map")
+                        
+        assert_dls_0("Frankfurt", "Karlsruhe", problem.SOLUTION_UNKNOWN)
+        assert_dls_0("Frankfurt", "Frankfurt", ["Frankfurt"])
+        assert_dls_2("Stuttgart", "Augsburg", problem.SOLUTION_UNKNOWN)
+        assert_dls_2("Stuttgart", "Wurzburg", ["Stuttgart", "Nurnberg", "Wurzburg"])
         
         
+    def test_romania(self):  
+        assert_dls_0 = functools.partial(self.assert_solution, 
+                        lambda problem: search.depth_limited_search(problem, 0), 
+                        "romania_map")
+        assert_dls_2 = functools.partial(self.assert_solution, 
+                        lambda problem: search.depth_limited_search(problem, 2), 
+                        "romania_map")
+        assert_dls_0("Arad", "Sibiu", problem.SOLUTION_UNKNOWN)
+        assert_dls_0("Urziceni", "Urziceni", ["Urziceni"])
+        assert_dls_2("Bucharest", "Oradea", problem.SOLUTION_UNKNOWN)
+        assert_dls_2("Arad", "RimnicuVilcea", ["Arad", "Sibiu", "RimnicuVilcea"])
+        
+    
 if __name__ == "__main__":
     unittest.main()

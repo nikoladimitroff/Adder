@@ -1,5 +1,6 @@
 from tests.graphs import GraphFactoryTests
-from tests.search import SearchTests
+from tests.search import BfsTests
+from tests.search import DlsTests
 
 
 import unittest
