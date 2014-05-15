@@ -32,11 +32,12 @@ class SearchTests(unittest.TestCase):
         
     def assert_cost(self, problem_instance, solution, expected):        
         # Compare the expected cost with the actual cost
-        cost = problem_instance.solution_cost(solution)
-        actual_cost = 0
+        actual_cost = problem_instance.solution_cost(solution)
+        expected_cost = 0
         for i in range(len(expected) - 1):
-            actual_cost += problem_instance.step_cost(expected[i][0], expected[i + 1][0])
-        self.assertEqual(cost, actual_cost)
+            expected_cost += problem_instance.step_cost(expected[i][0], expected[i + 1][0])
+            
+        self.assertEqual(expected_cost, actual_cost)
         
     def assert_solution(self, search_algorithm, graph_file_name, start_node, end_node, expected_sequence):
         expected = self.sequence_to_solution_format(expected_sequence)
@@ -154,6 +155,49 @@ class DlsTests(SearchTests):
         assert_dls_0("Urziceni", "Urziceni", ["Urziceni"])
         assert_dls_2("Bucharest", "Oradea", problem.SOLUTION_UNKNOWN)
         assert_dls_2("Arad", "RimnicuVilcea", ["Arad", "Sibiu", "RimnicuVilcea"])
+        
+        
+class AStarTests(SearchTests):
+    def test_bulgaria_disconnected(self):   
+        heuristic_dict = { "Pernik": 20, "Sofia": 20, "Varna": 120, "Burgas": 120, "Dupnica": 35, "Kustendil": 35 }
+        heuristic = lambda source: heuristic_dict[source]
+        search_algo = lambda problem: search.astar(problem, heuristic)
+        self.assert_bulgaria_disconnected(search_algo)
+        
+    def test_romania(self):  
+        # Distances to Bucharest
+        heuristic_dict = { "Arad": 366, "Bucharest": 0, "Craiova": 160,
+            "Drobeta": 242, "Eforie": 161, "Fagaras": 176,
+            "Giurgiu": 77, "Hirsova": 151, "Iasi": 226, "Lugoj": 244,
+            "Mehadia": 241, "Neamt": 234, "Oradea": 380, "Pitesti": 100,
+            "RimnicuVilcea": 193, "Sibiu": 253, "Timisoara": 329,
+            "Urziceni": 80, "Vaslui": 199, "Zerind": 374
+        }
+        heuristic = lambda source: heuristic_dict[source]
+        assert_astar = functools.partial(self.assert_solution, 
+                        lambda problem: search.astar(problem, heuristic), 
+                        "romania_map")
+        assert_astar("Arad", "Bucharest", ["Arad", "Sibiu", "RimnicuVilcea", "Pitesti", "Bucharest"])
+        
+    def test_bulgaria(self):
+        # Straight line distances to Pernik
+        # source http://distance.bg360.net/
+        pernik_dist = { "Sofia": 25.4, "Pernik": 0, "Kustendil": 45.3, "Dupnica": 38, "Blagoevgrad": 65, 
+            "Sandanski": 117, "Kulata": 138, "Botevgrad": 70, "Vraca": 80, "Montana": 90, "Belogradchik": 117, 
+            "Lom": 136, "Vidin": 155, "Lovech": 149, "Pleven": 156, "Tarnovo": 217, "Biala": 239, "Ruse": 274,
+            "Razgrad": 303, "Shumen": 326, "Dobrich": 403, "Silistra": 381, "Varna": 402, "Burgas": 362.9, 
+            "Iambol": 284, "Plovdiv": 149, "Karlovo": 144, "StaraZagora": 214, "Kazanlak": 192, "Gabrovo": 188, 
+            "Haskovo": 220, "Kardzhali": 221, "Smolian": 178, "Pazardzhik": 116, "Pirdop": 93, "Troian": 140, "Sliven": 269
+        }
+        
+        heuristic = lambda town: pernik_dist[town]
+        assert_astar = functools.partial(self.assert_solution,
+                        lambda problem: search.astar(problem, heuristic),
+                        "bulgaria_map")
+                        
+        assert_astar("Varna", "Pernik", ['Varna', 'Shumen', 'Tarnovo', 'Botevgrad', 'Sofia', 'Pernik'])
+        assert_astar("Vidin", "Pernik", ['Vidin', 'Montana', 'Sofia', 'Pernik'])
+        assert_astar("Silistra", "Pernik", ['Silistra', 'Ruse', 'Biala', 'Lovech', 'Botevgrad', 'Sofia', 'Pernik'])
         
     
 if __name__ == "__main__":

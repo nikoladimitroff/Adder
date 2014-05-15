@@ -11,7 +11,8 @@ class _Node:
         self.__path_cost = path_cost
         
     def __eq__(self, other):
-        return self.state == other.state
+        return self.state == other.state and \
+               self.action == other.action
         
     def __ne__(self, other):
         return not self == other
@@ -21,7 +22,7 @@ class _Node:
         
     def __str__(self):
         parent_name = self.parent.state if self.parent else "None"
-        return self.state + "OMG NODE!"
+        return self.state
         return "(State: {0}, Parent: {1}, Action: {2})".format(self.state, parent_name, self.action)
         
     def __repr__(self):
