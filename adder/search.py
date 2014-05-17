@@ -75,7 +75,7 @@ def astar(problem, heuristic):
     
     f_values = { node: heuristic(node.state)}
     g_values = { node: 0 }
-    
+    nodes_generated = 0
     while len(frontier) != 0:
         # Expand the node with lowest f_value
         frontier_f_scores = [(f_values[expanded], index) for index, expanded in enumerate(frontier)]
@@ -92,12 +92,17 @@ def astar(problem, heuristic):
             if child in visited: continue
             
             new_g_value = g_values[node] + problem.step_cost(node.state, action)
-            child_in_frontier = child in frontier
+            child_index = -1
+            for i, element in enumerate(frontier):
+                if element == child:
+                    child_index = i
+
+            child_in_frontier = child_index != -1
             needs_update = child_in_frontier and new_g_value < g_values[child]
                 
             if needs_update:
                 # Update the node so that it has proper parent, action and cost
-                frontier[frontier.index(child)] = child
+                frontier[child_index] = child
                 
             if child not in frontier:
                 frontier.append(child)

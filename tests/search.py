@@ -198,7 +198,28 @@ class AStarTests(SearchTests):
         assert_astar("Varna", "Pernik", ['Varna', 'Shumen', 'Tarnovo', 'Botevgrad', 'Sofia', 'Pernik'])
         assert_astar("Vidin", "Pernik", ['Vidin', 'Montana', 'Sofia', 'Pernik'])
         assert_astar("Silistra", "Pernik", ['Silistra', 'Ruse', 'Biala', 'Lovech', 'Botevgrad', 'Sofia', 'Pernik'])
-        
-    
+
+
+class AStarNPuzzleTests(SearchTests):    
+    def assert_npuzzle(self, heuristic, initial, goal, expected_solution_length):
+        problem_factory = problem.ProblemFactory()
+        problem_instance = problem_factory.from_npuzzle(initial, goal)
+        h = functools.partial(heuristic, problem_instance)
+        solution = search.astar(problem_instance, h)
+        self.assertEqual(len(solution), expected_solution_length)
+
+    def test_npuzzle(self): 
+        def manhattan_heuristic(problem_instance,state):
+           scoords = [problem_instance.coords_of(state, num) for num in state.split()]
+           gcoords = [problem_instance.coords_of(state, num) for num in problem_instance.goal.split()]
+           diff = [abs(scoords[i][0] - gcoords[i][0]) + abs(scoords[i][1] - gcoords[i][1]) for i in range(0, len(state.split()) - 1)]
+           s = sum(diff)
+           return s
+
+        self.assert_npuzzle(manhattan_heuristic, "6 4 8 0 1 2 10 11 5 13 3 14 15 7 12 9", " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0", 35)
+        self.assert_npuzzle(manhattan_heuristic, "8 3 0 4 2 6 1 5 7", "0 1 2 3 4 5 6 7 8", 27)
+        self.assert_npuzzle(manhattan_heuristic, "4 2 5 3 6 8 1 7 0", "0 1 2 3 4 5 6 7 8", 15)
+
+
 if __name__ == "__main__":
     unittest.main()
