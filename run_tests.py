@@ -2,6 +2,7 @@ from tests.graphs import GraphFactoryTests
 from tests.search import BfsTests
 from tests.search import DlsTests
 from tests.search import AStarTests
+from tests.search import AStarNPuzzleTests
 
 
 import unittest

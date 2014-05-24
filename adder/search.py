@@ -111,4 +111,3 @@ def astar(problem, heuristic):
                 g_values[child] = new_g_value
                 f_values[child] = new_g_value + heuristic(child.state)
     return FAILURE
-    

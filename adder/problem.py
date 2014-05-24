@@ -112,8 +112,17 @@ class _GraphProblem(_Problem):
 
 
 class _NPuzzleProblem(_Problem):
+
+    UP = "UP"
+    DOWN = "DOWN"
+    LEFT = "LEFT"
+    RIGHT = "RIGHT"
+
     def __init__(self, initial, goal):
-        self.board_size = (initial.count(" ") + 1) ** 0.5
+        initial = initial if isinstance(initial, tuple) else tuple(initial.split())
+        goal = goal if isinstance(goal, tuple) else tuple(goal.split())
+
+        self.board_size = len(initial) ** 0.5
         if not self.board_size.is_integer():
             raise InvalidArgumentError("The size of the board must be a exact square!")
 
@@ -121,24 +130,18 @@ class _NPuzzleProblem(_Problem):
         self.initial = _Node(initial, None, None, 0)
         self.goal = goal
         
-    def _swap_letters(self, text, first, second):
-        text_array = text.split()
+    def _swap_letters(self, state, first, second):
+        next_state = list(state)
+        next_state[first], next_state[second] = next_state[second], next_state[first]
 
-        first_letter = text_array[first]
-        text_array[first] = text_array[second]
-        text_array[second] = first_letter
-
-        return " ".join(text_array) 
+        return tuple(next_state)
 
     def coords_of(self, state, number):
         number = str(number)
-        index = -1
-        for num_index, num in enumerate(state.split()):
-            if num == number:
-                index = num_index
-                break
-                 
-        # index = i * 3 + j
+
+        index = state.index(number)
+
+        # index = i * size + j
         j = index % self.board_size
         i = (index - j) / self.board_size
         return (i, int(j))
@@ -149,13 +152,13 @@ class _NPuzzleProblem(_Problem):
         index = int(i * self.board_size + j)
         neighbours = []
         if i < self.board_size - 1:
-            neighbours.append(self._swap_letters(state, index, index + self.board_size))
+            neighbours.append(_NPuzzleProblem.UP)
         if i > 0:
-            neighbours.append(self._swap_letters(state, index, index - self.board_size))
+            neighbours.append(_NPuzzleProblem.DOWN)
         if j < self.board_size - 1:
-            neighbours.append(self._swap_letters(state, index, index + 1))
+            neighbours.append(_NPuzzleProblem.RIGHT)
         if j > 0:
-            neighbours.append(self._swap_letters(state, index, index - 1))
+            neighbours.append(_NPuzzleProblem.LEFT)
 
         return iter(neighbours)
             
@@ -164,7 +167,15 @@ class _NPuzzleProblem(_Problem):
         return 1
         
     def result(self, state, action):
-        return action
+        index = state.index("0")
+        if action == _NPuzzleProblem.UP:
+            return self._swap_letters(state, index, index + self.board_size)
+        if action == _NPuzzleProblem.DOWN:
+            return self._swap_letters(state, index, index - self.board_size)
+        if action == _NPuzzleProblem.RIGHT:
+            return self._swap_letters(state, index, index + 1)
+        if action == _NPuzzleProblem.LEFT:
+            return self._swap_letters(state, index, index - 1)
         
     def goal_test(self, state):
         return state == self.goal
@@ -177,7 +188,7 @@ class ProblemFactory:
 
     def from_functions(self, initial_state, actions, step_cost, result, goal_test):
         problem = _Problem()
-        problem.initial = _Node(initial, None, None, 0)
+        problem.initial = _Node(initial_state, None, None, 0)
         problem.actions_iter = actions
         problem.step_cost = step_cost
         problem.result = result
