@@ -1,5 +1,8 @@
 # Depends on: graphs.py
 
+from functools import partial
+import random
+
 class InvalidArgumentError(Exception):
     pass
 
@@ -65,8 +68,6 @@ class _Problem:
         path = []
         while end_node != self.initial:
             parent = end_node.parent
-            if parent.state in [node for node, action in path]:
-                return FAILURE
                 
             path.append((end_node.state, end_node.action))           
             end_node = parent
@@ -180,6 +181,54 @@ class _NPuzzleProblem(_Problem):
     def goal_test(self, state):
         return state == self.goal
 
+    
+class _NQueensProblem(_Problem):
+
+    def __init__(self, size, initial=None):
+        self.size = size
+        initial_state = initial if initial else _NQueensProblem.generate_random_state(size)
+        self.initial = _Node(initial_state, None, None, 0)
+        
+    def generate_random_state(size):
+        return tuple(random.randint(0, size) for i in range(size))
+
+    def attacking(state):
+        size = len(state)
+        attacking = 0
+        for col, row in enumerate(state):
+            for other_col in range(col + 1, size):
+                # Row
+                if row == state[other_col]:
+                    attacking += 1
+                # Diag 1
+                if row == state[other_col] + (col - other_col):
+                    attacking += 1
+                # Diag 2
+                if row == state[other_col] - (col - other_col):
+                    attacking += 1
+
+        return attacking
+
+
+    def actions_iter(self, state):
+        for col in range(self.size):
+            for row in range(self.size):
+                if row == state[col]: continue
+                yield (col, row)
+            
+        
+    def step_cost(self, state, action):
+        return 1
+        
+    def result(self, state, action):
+        col_index, row_index = action
+        next_state = list(state)
+        next_state[col_index] = row_index
+
+        return tuple(next_state)
+
+    def goal_test(self, state):
+        return _NQueensProblem.attacking(state) == 0
 
         
 class ProblemFactory:
@@ -198,3 +247,21 @@ class ProblemFactory:
 
     def from_npuzzle(self, initial, goal):
         return _NPuzzleProblem(initial, goal)
+
+    def from_nqueens(self, size, initial=None):
+        return _NQueensProblem(size, initial)
+
+    
+    def _manhattan_heuristic(problem_instance, state):
+        scoords = [problem_instance.coords_of(state, num) for num in state]
+        gcoords = [problem_instance.coords_of(state, num) for num in problem_instance.goal]
+        diff = [abs(scoords[i][0] - gcoords[i][0]) + abs(scoords[i][1] - gcoords[i][1]) for i in range(0, len(state) - 1)]
+        return sum(diff)
+
+    def heuristic_for(self, problem):
+        if isinstance(problem, _NPuzzleProblem):
+            return partial(ProblemFactory._manhattan_heuristic, problem)
+        elif isinstance(problem, _NQueensProblem):
+            return _NQueensProblem.attacking
+        else:
+            raise TypeError("No heuristic exists for this type of problem")

@@ -3,6 +3,8 @@ from adder.problem import FAILURE
 from adder.problem import SOLUTION_UNKNOWN
 from itertools import count
 from collections import defaultdict
+import random
+import math
 
 # <uninformed searches>
 
@@ -111,3 +113,77 @@ def astar(problem, heuristic):
                 g_values[child] = new_g_value
                 f_values[child] = new_g_value + heuristic(child.state)
     return FAILURE
+
+def hill_climbing(problem, heuristic, max_sideways_walk, local_minima_acceptable=False):
+    node = problem.initial
+    current_cost = float("inf")
+    sideway_moves = 0
+    while True:
+        heuristic_transform = lambda action: heuristic(problem.result(node.state, action))
+        best_action = min(problem.actions_iter(node.state), key=heuristic_transform)
+        cost = heuristic_transform(best_action)
+
+        if cost > current_cost:
+            return problem.construct_solution(node) if local_minima_acceptable else FAILURE
+        elif cost == current_cost:
+            if sideway_moves >= max_sideways_walk:
+                return problem.construct_solution(node) if local_minima_acceptable else FAILURE
+            sideway_moves += 1
+        else:
+            sideway_moves = 0
+
+        node = problem.child_node(node, best_action)
+        current_cost = cost
+        if problem.goal_test(node.state):
+            return problem.construct_solution(node)
+
+def random_restart_hc(problem_generator, heuristic, max_sideways_walk, max_iterations=1<<31):
+    for _ in range(max_iterations):
+        solution = hill_climbing(problem_generator(), heuristic, max_sideways_walk)
+        if solution != FAILURE:
+            return solution
+
+    return FAILURE
+
+import time as TIME
+def simulated_annealing(problem, heuristic, 
+                        local_minima_acceptable=False, 
+                        temperature_func=lambda t: math.log(1 / t), 
+                        min_temperature=0.01):
+    """
+    Solves the problem using Simulated Annealing. The method is highly dependent on the right parameters. For best results, obey the following:
+    - the temperature_func must be monothonic and slowly decreasing. The time argument will be in the range [0, 1]
+    """
+    #landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
+    #width = len(landscape)
+    #height = 8
+    #def print_landscape(state):
+    #    print(time, temperature_func(time))
+    #    for row_index in range(height):
+    #        row = [' ' if landscape[i] > row_index else ('|' if landscape[i] < row_index else ('Y' if i == state else 'T')) for i in range(width)]
+    #        print("".join(row))
+
+
+    node = problem.initial
+    current_cost = heuristic(node.state)
+    max_time = 1000
+    for time in range(1, max_time):
+        #print_landscape(node.state)
+        if problem.goal_test(node.state):
+            return problem.construct_solution(node)
+
+        temperature = temperature_func(time / max_time) / temperature_func(1 / max_time)
+        action = random.choice(list(problem.actions_iter(node.state)))
+        child = problem.child_node(node, action)
+        child_cost = heuristic(child.state)
+        delta_cost = current_cost - child_cost
+
+        chance = math.exp(delta_cost / temperature)
+        node = child if chance >= random.random() else node
+
+        if abs(temperature) <= min_temperature:
+            break
+
+        current_cost = heuristic(node.state)
+
+    return problem.construct_solution(node) if local_minima_acceptable else FAILURE

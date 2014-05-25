@@ -201,24 +201,80 @@ class AStarTests(SearchTests):
 
 
 class AStarNPuzzleTests(SearchTests):    
-    def assert_npuzzle(self, heuristic, initial, goal, expected_solution_length):
-        problem_factory = problem.ProblemFactory()
-        problem_instance = problem_factory.from_npuzzle(initial, goal)
-        h = functools.partial(heuristic, problem_instance)
-        solution = search.astar(problem_instance, h)
+    def assert_npuzzle(self, initial, goal, expected_solution_length):
+        factory = problem.ProblemFactory()
+        problem_instance = factory.from_npuzzle(initial, goal)
+        heuristic = factory.heuristic_for(problem_instance)
+        solution = search.astar(problem_instance, heuristic)
         self.assertEqual(len(solution), expected_solution_length)
 
     def test_npuzzle(self): 
-        def manhattan_heuristic(problem_instance,state):
-           scoords = [problem_instance.coords_of(state, num) for num in state]
-           gcoords = [problem_instance.coords_of(state, num) for num in problem_instance.goal]
-           diff = [abs(scoords[i][0] - gcoords[i][0]) + abs(scoords[i][1] - gcoords[i][1]) for i in range(0, len(state) - 1)]
-           s = sum(diff)
-           return s
 
-        #self.assert_npuzzle(manhattan_heuristic, "6 4 8 0 1 2 10 11 5 13 3 14 15 7 12 9", " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0", 35)
-        #self.assert_npuzzle(manhattan_heuristic, "8 3 0 4 2 6 1 5 7", "0 1 2 3 4 5 6 7 8", 27)
-        self.assert_npuzzle(manhattan_heuristic, "4 2 5 3 6 8 1 7 0", "0 1 2 3 4 5 6 7 8", 15)
+        #self.assert_npuzzle("6 4 8 0 1 2 10 11 5 13 3 14 15 7 12 9", " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0", 35)
+        #self.assert_npuzzle("8 3 0 4 2 6 1 5 7", "0 1 2 3 4 5 6 7 8", 27)
+        self.assert_npuzzle("4 2 5 3 6 8 1 7 0", "0 1 2 3 4 5 6 7 8", 15)
+
+
+class HillClimbingQueensTests(unittest.TestCase):
+    def test_local_minima(self):
+        factory = problem.ProblemFactory()
+        local_minima = factory.from_nqueens(8, initial=(7, 2, 6, 3, 1, 4, 0, 5))
+        heuristic = factory.heuristic_for(local_minima)
+
+        solution = search.hill_climbing(local_minima, heuristic, 0, local_minima_acceptable=True)
+        self.assertNotEqual(solution, problem.FAILURE)
+        solution = search.hill_climbing(local_minima, heuristic, 0)
+        self.assertEqual(solution, problem.FAILURE)
+
+    def test_hill_climbing(self):
+        pass
+
+    def test_random_restart_hill_climbing(self):
+        factory = problem.ProblemFactory()
+        queens8_gen = functools.partial(factory.from_nqueens, 8)
+        heuristic = factory.heuristic_for(queens8_gen())
+        for _ in range(10):
+            self.assertNotEqual(search.random_restart_hc(queens8_gen, heuristic, 100), problem.FAILURE)
+
+
+
+class SimulatedAnnealingTests(unittest.TestCase):
+    def test_simulated_annealing(self):
+        factory = problem.ProblemFactory()
+        queens8_gen = functools.partial(factory.from_nqueens, 8)
+        heuristic = factory.heuristic_for(queens8_gen())
+        problem_count = 10
+        expected_solutions = 0.7 * problem_count 
+        found_solutions = 0
+        for _ in range(problem_count):
+            solution = search.simulated_annealing(queens8_gen(), heuristic)
+            found_solutions += 1 if solution != problem.FAILURE else 0
+        self.assertGreaterEqual(found_solutions, expected_solutions)
+
+    def test_sa(self):
+        height = 8
+        landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
+        state = 0
+        def actions(state):
+            actions = []
+            if state > 0: actions.append(-1)
+            if state < len(landscape) - 1: actions.append(1)
+            return actions
+
+        result = lambda state, action: state + action
+        step_cost = lambda state, action: 1
+
+        heuristic = lambda state: (height - landscape[state] - 1) / (height - 1)
+        goal_state = lambda state: heuristic(state) == 0
+
+        factory = problem.ProblemFactory()
+        pr = factory.from_functions(state, actions, step_cost, result, goal_state)
+
+        solution = search.simulated_annealing(pr, heuristic, local_minima_acceptable=True)
+        self.assertNotEqual(solution, problem.FAILURE)
+        final_state = solution[-1][0]
+        # Assert that SA has found at least the best local minima
+        self.assertLessEqual(heuristic(final_state), 1)
 
 
 if __name__ == "__main__":
