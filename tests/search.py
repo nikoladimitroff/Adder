@@ -1,13 +1,13 @@
 # Depends on: adder, tests.config
+import functools
+import os
+import unittest
+import random
 
 from adder import graphs
 from adder import problem
 from adder import search
 from tests import config
-
-import functools
-import os
-import unittest
 
 import tests.config as config
 
@@ -235,11 +235,18 @@ class HillClimbingQueensTests(unittest.TestCase):
         heuristic = factory.heuristic_for(queens8_gen())
         for _ in range(10):
             self.assertNotEqual(search.random_restart_hc(queens8_gen, heuristic, 100), problem.FAILURE)
+            
+    def test_random_restart_hill_climbing_giant_queens(self):
+        factory = problem.ProblemFactory()
+        size = 14
+        queens_mil_gen = functools.partial(factory.from_nqueens, size)
+        heuristic = factory.heuristic_for(queens_mil_gen())
+        self.assertNotEqual(search.random_restart_hc(queens_mil_gen, heuristic, 100), problem.FAILURE)
 
 
 
 class SimulatedAnnealingTests(unittest.TestCase):
-    def test_simulated_annealing(self):
+    def test_simulated_annealing_success_ratio(self):
         factory = problem.ProblemFactory()
         queens8_gen = functools.partial(factory.from_nqueens, 8)
         heuristic = factory.heuristic_for(queens8_gen())
@@ -249,9 +256,10 @@ class SimulatedAnnealingTests(unittest.TestCase):
         for _ in range(problem_count):
             solution = search.simulated_annealing(queens8_gen(), heuristic)
             found_solutions += 1 if solution != problem.FAILURE else 0
+
         self.assertGreaterEqual(found_solutions, expected_solutions)
 
-    def test_sa(self):
+    def test_simulated_annealing_landscape(self):
         height = 8
         landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
         state = 0
@@ -275,6 +283,35 @@ class SimulatedAnnealingTests(unittest.TestCase):
         final_state = solution[-1][0]
         # Assert that SA has found at least the best local minima
         self.assertLessEqual(heuristic(final_state), 1)
+
+        
+class GeneticTests(unittest.TestCase):
+    
+    def _reproduce_nqueens(self, father, mother, crossover):
+        child = [father[i] if i < crossover else mother[i] 
+                 for i in range(len(father))]
+        return tuple(child)
+
+    def _mutate_nqueens(self, state):
+        column = random.randint(0, len(state) - 1)
+        while True:
+            row = random.randint(0, len(state) - 1)
+            if state[column] != row:
+                mutated = [state[i] if i != column else row
+                           for i in range(len(state))]
+                return tuple(mutated)
+
+    def test_genetic_nqueens(self):
+        factory = problem.ProblemFactory()
+        size = 8
+        state_gen = lambda: factory.from_nqueens(size).initial.state
+        heuristic = factory.heuristic_for(factory.from_nqueens(size))
+        most_attacking_queens = sum(range(size))
+        fitness = lambda state: most_attacking_queens - heuristic(state)
+        population_size = 10
+        
+        res = search.genetic(state_gen, fitness, most_attacking_queens, self._reproduce_nqueens, self._mutate_nqueens, population_size)
+        self.assertEqual(heuristic(res), 0)
 
 
 if __name__ == "__main__":

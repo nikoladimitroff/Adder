@@ -29,12 +29,12 @@ def bfs(problem):
                     frontier.append(child)
                 
     return FAILURE
-    
-    
+
+
 def depth_limited_search(problem, max_depth):
     return __recursive_dls(problem, problem.initial, {problem.initial}, max_depth)
-    
-    
+
+
 def __recursive_dls(problem, node, visited, max_depth):
     if problem.goal_test(node.state):
         return problem.construct_solution(node)
@@ -54,10 +54,12 @@ def __recursive_dls(problem, node, visited, max_depth):
                 return child_dls   
             
     return SOLUTION_UNKNOWN if unknown_occured else FAILURE
-    
+
+
 def dfs(problem):
     return depth_limited_search(problem, float("inf"))
-    
+
+
 def iterative_deepening_dfs(problem, max_depth=float("inf")):
     for depth in count():
         result = depth_limited_search(problem, depth)
@@ -69,7 +71,7 @@ def iterative_deepening_dfs(problem, max_depth=float("inf")):
 def __astar_key_comparer(pair):
     return pair[0]
 
-    
+
 def astar(problem, heuristic):
     visited = set()
     node = problem.initial
@@ -114,6 +116,7 @@ def astar(problem, heuristic):
                 f_values[child] = new_g_value + heuristic(child.state)
     return FAILURE
 
+
 def hill_climbing(problem, heuristic, max_sideways_walk, local_minima_acceptable=False):
     node = problem.initial
     current_cost = float("inf")
@@ -137,6 +140,7 @@ def hill_climbing(problem, heuristic, max_sideways_walk, local_minima_acceptable
         if problem.goal_test(node.state):
             return problem.construct_solution(node)
 
+
 def random_restart_hc(problem_generator, heuristic, max_sideways_walk, max_iterations=1<<31):
     for _ in range(max_iterations):
         solution = hill_climbing(problem_generator(), heuristic, max_sideways_walk)
@@ -145,7 +149,7 @@ def random_restart_hc(problem_generator, heuristic, max_sideways_walk, max_itera
 
     return FAILURE
 
-import time as TIME
+
 def simulated_annealing(problem, heuristic, 
                         local_minima_acceptable=False, 
                         temperature_func=lambda t: math.log(1 / t), 
@@ -187,3 +191,73 @@ def simulated_annealing(problem, heuristic,
         current_cost = heuristic(node.state)
 
     return problem.construct_solution(node) if local_minima_acceptable else FAILURE
+
+
+_MUTATION_CHANCE = 0.1
+def genetic(state_generator, 
+            fitness_func, 
+            best_fitness_value,
+            reproducer, 
+            mutator, 
+            population_size, 
+            max_generations=1<<31):
+    """
+    Find a state whose fitness value is at least best_fitness_value.
+    Alternatively, finds the best state after max_generations.
+
+    Args: 
+        state_generator: a function generating random states
+        fitness_func: a function computing the fitness value of a state. MUST BE NONNEGATIVE!
+        best_fitness_value: the threshold for the best state
+        reproducer: a function that combines two states given a separation point
+        mutator: a function that sligthly changes the given state
+        population_size: the size of the population
+    """
+
+    population = {}
+    fitness_sum = 0
+    for i in range(population_size):
+        individual = state_generator()
+        population[individual] = fitness_func(individual)
+        fitness_sum += population[individual]
+    
+    for i in range(max_generations):
+        for individual in population:
+            population[individual] = population[individual] / fitness_sum
+
+        generation = {}
+        generation_fitness_sum = 0
+        for i in range(population_size):
+            father = _weighted_choice(population)
+            mother = _weighted_choice(population)
+            
+            for child in _reproduce(father, mother, reproducer):
+                if random.random() <= _MUTATION_CHANCE:
+                    child = mutator(child)
+                if child in generation: continue
+                generation[child] = fitness_func(child)
+                if generation[child] >= best_fitness_value:
+                    return child
+                generation_fitness_sum += generation[child]
+
+        population = generation
+        fitness_sum = generation_fitness_sum
+
+    return max(population, key=lambda key_value_pair: key_value_pair[1])[0]
+
+def _weighted_choice(choices):
+    r = random.uniform(0, 1)
+    upto = 0
+    for choice, weight in choices.items():
+        if upto + weight > r:
+            return choice
+        upto += weight
+    assert False, "No way to get here"
+
+
+def _reproduce(father, mother, reproducer):
+    crossover_point = random.randint(0, len(father) - 1)
+    first_child = reproducer(father, mother, crossover_point) 
+    second_child = reproducer(father, mother, len(father) - crossover_point)
+    return (first_child, second_child)
+
