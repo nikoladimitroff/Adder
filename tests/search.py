@@ -22,7 +22,7 @@ class SearchTests(unittest.TestCase):
         
     def run_search(self, search_algorithm, graph_file_name, start_node, end_node):    
         loader = graphs.GraphLoader()
-        graph = loader.from_file(config.TEST_DATA[graph_file_name])
+        graph = loader.from_file(config.TEST_GRAPHS[graph_file_name])
         
         factory = problem.ProblemFactory()
         problem_instance = factory.from_graph(graph, start_node, end_node)

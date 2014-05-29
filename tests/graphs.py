@@ -95,7 +95,7 @@ class GraphFactoryTests(unittest.TestCase):
         self.assert_graph_loaded(graph, cities, some_edges)
         
     def test_graph_load_from_string(self):
-        for test_name, path in config.TEST_DATA.items():
+        for test_name, path in config.TEST_GRAPHS.items():
             with open(path) as file:
                 file_content = file.read()
             
@@ -105,11 +105,12 @@ class GraphFactoryTests(unittest.TestCase):
             test_func(graph)
         
     def test_graph_load_from_file(self):
-        for test_name, path in config.TEST_DATA.items():
+        for test_name, path in config.TEST_GRAPHS.items():
             loader = graphs.GraphLoader()
             graph = loader.from_file(path)
             test_func = getattr(self, "assert_{0}_loaded".format(test_name))
             test_func(graph)        
-        
+
+
 if __name__ == "__main__":
     unittest.main()

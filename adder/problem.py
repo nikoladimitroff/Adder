@@ -3,8 +3,7 @@
 from functools import partial
 import random
 
-class InvalidArgumentError(Exception):
-    pass
+from adder.utils import InvalidArgumentError
 
 class _Node:
     def __init__(self, state, parent, action, path_cost):
@@ -42,7 +41,7 @@ class _Node:
 FAILURE = "FAILURE"
 SOLUTION_UNKNOWN = "SOLUTION_UNKNOWN"
 
-class _Problem:    
+class Problem:
     def child_node(self, node, action):
         parent = node
         state = self.result(node.state, action)
@@ -88,7 +87,7 @@ class _Problem:
         return cost
         
 
-class _GraphProblem(_Problem):
+class _GraphProblem(Problem):
     def __init__(self, graph, root, goal):
         if root not in graph.get_nodes():
             raise InvalidArgumentError("root must be be a node in the graph")
@@ -112,7 +111,7 @@ class _GraphProblem(_Problem):
         return state == self.goal
 
 
-class _NPuzzleProblem(_Problem):
+class _NPuzzleProblem(Problem):
 
     UP = "UP"
     DOWN = "DOWN"
@@ -182,8 +181,7 @@ class _NPuzzleProblem(_Problem):
         return state == self.goal
 
     
-class _NQueensProblem(_Problem):
-
+class _NQueensProblem(Problem):
     def __init__(self, size, initial=None):
         self.size = size
         initial_state = initial if initial else _NQueensProblem.generate_random_state(size)
@@ -236,7 +234,7 @@ class ProblemFactory:
         return _GraphProblem(graph, root, goal)        
 
     def from_functions(self, initial_state, actions, step_cost, result, goal_test):
-        problem = _Problem()
+        problem = Problem()
         problem.initial = _Node(initial_state, None, None, 0)
         problem.actions_iter = actions
         problem.step_cost = step_cost
