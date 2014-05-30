@@ -54,9 +54,13 @@ class CnfConverterTests(unittest.TestCase):
         formula_equivalences = [
             ("!(A <=> B)", "(!A | !B) & (A | B)"),
             ("(A <=> B)", "(!A | B) & (A | !B)"),
-            #("(A <=> B) => ((A => B) & (B => A))", "A | B | !A | !B"),
-            #("(P & !Q) | (R & S) | (Q & R & !S)", "(P | Q | S) & (P | R) & (!Q | R)"),
-            ("A => (B & C) => B", "A | B"),
+            ("!((A <=> B) => ((A => B) & (B => A)))", "!A & !B & (A | B)"),
+            ("(A <=> B) => ((A => B) & (B => A))", ""),
+            ("(P & !Q) | (R & S) | (Q & R & !S)", "(P | Q | S) & (P | R) & (!Q | R)"),
+            ("(A => (B & C)) => B", "A | B"),
+            ("((!A | B) & (!A | C)) => B", "A | B"),
+            ("!(A => (B & C))", "A & (!B | !C)"),
+            ("(A => B) => C", "(A | C) & (!B | C)"),
             ("(B11 => (P12 | P21)) & ((P12 | P21) => B11)", "(!B11 | P12 | P21) & (!P12 | B11) & (!P21 | B11)"),
             ("(A | B) => C", "(!A | C) & (!B | C)")
         ]
@@ -68,8 +72,8 @@ class CnfConverterTests(unittest.TestCase):
                              disjunct.replace(")", "").replace("(", "").split("|")
                              }
                             for disjunct in cnf.split("&")
+                            if len(disjunct) != 0
                             ]
-            print(proplogic.print_cnf_clause(result), "\n", proplogic.print_cnf_clause(result2))
             self.assertCountEqual(result, result2)
             self.assertCountEqual(result, expected_cnf)
 

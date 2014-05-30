@@ -188,32 +188,42 @@ OPERATOR_PRECEDENCE = {
     LogicOperator.Negation: negation_cnf
 }
 
-def clean_disjunct(disjunct):
-    return {symbol for symbol in disjunct 
-            if LogicOperator.Negation + symbol not in disjunct and \
-               (not symbol[0] == LogicOperator.Negation or symbol[1:] not in disjunct)}
+def is_disjunct_true(disjunct):
+    return any(LogicOperator.Negation + symbol in disjunct 
+               for symbol in disjunct)
 
-def unique(collection):
+def clean_clauses(clauses):
     unique = []
-    for item in collection:
-        if item not in unique:
-            unique.append(item)
-    return unique
+    for clause in clauses:
+        if clause not in unique:
+            unique.append(clause)
+    
+    result = []
+
+    for clause in unique:
+        is_superset = any([conjuct < clause for conjuct in unique])
+        if not is_superset:
+            result.append(clause)
+
+    return result
 
 def parse_cnf_clause(sentence):
     cnf = flatten_braces(_convert_to_cnf(sentence))
-    
+   
     clauses = []
     for disjunct_text in cnf.split(LogicOperator.Conjuction):
         disjunct_text = disjunct_text.replace(LogicOperator.LeftBrace, "") \
                 .replace(LogicOperator.RightBrace, "")
+        if len(disjunct_text) == 0:
+            continue
 
-        disjunct  = clean_disjunct({symbol.strip() for symbol in 
-                                    disjunct_text.split(LogicOperator.Disjunction)})
-        if len(disjunct) != 0:
+        disjunct = {symbol.strip() for symbol in 
+                    disjunct_text.split(LogicOperator.Disjunction)}
+
+        if not is_disjunct_true(disjunct):
             clauses.append(disjunct)
 
-    return unique(clauses)
+    return clean_clauses(clauses)
 
 def print_cnf_clause(clause):
     printable = "(" +") & (".join([" | ".join(disjunct) for disjunct in clause]) + ")"
@@ -228,8 +238,6 @@ def _convert_to_cnf(sentence):
     # Push the negation up to vars
     # Use distrubutivity
     
-    # remove surrounding parenthesis
-    sentence = _remove_surrounding_parenthesis(sentence)
 
     if is_var(sentence):
         result = sentence
@@ -248,6 +256,8 @@ def is_var(sentence):
            LogicOperator.Equivalence in sentence)
 
 def parse_sentence(sentence):
+    # remove surrounding parenthesis
+    sentence = _remove_surrounding_parenthesis(sentence.strip())
     brace_replaced = brace_replace(sentence)
     operator = get_operator(brace_replaced[0])
     operands = get_operands(brace_replaced, operator)
