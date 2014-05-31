@@ -18,7 +18,7 @@ class DefiniteClausesTests(unittest.TestCase):
                 P => Q
         """
 
-        self.kb = proplogic.parse_definite_clauses(implications)
+        self.kb = proplogic.parse_definite_knowledge_base(implications)
 
     def test_parsing_kb(self):
         dnf = """A
@@ -30,7 +30,7 @@ class DefiniteClausesTests(unittest.TestCase):
                 !P | Q
         """
         
-        parsed_dnf = proplogic.parse_definite_clauses(dnf)
+        parsed_dnf = proplogic.parse_definite_knowledge_base(dnf)
         self.assertEqual(parsed_dnf, self.kb)
 
     def test_fc_sample(self):
@@ -62,12 +62,13 @@ class CnfConverterTests(unittest.TestCase):
             ("!(A => (B & C))", "A & (!B | !C)"),
             ("(A => B) => C", "(A | C) & (!B | C)"),
             ("(B11 => (P12 | P21)) & ((P12 | P21) => B11)", "(!B11 | P12 | P21) & (!P12 | B11) & (!P21 | B11)"),
+            ("(B11 <=> (P12 | P21))", "(!B11 | P12 | P21) & (!P12 | B11) & (!P21 | B11)"),
             ("(A | B) => C", "(!A | C) & (!B | C)")
         ]
 
         for formula, cnf in formula_equivalences:
-            result = proplogic.parse_cnf_clause(formula)
-            result2 = proplogic.parse_cnf_clause(cnf)
+            result = proplogic.parse_cnf_sentence(formula)
+            result2 = proplogic.parse_cnf_sentence(cnf)
             expected_cnf = [{symbol.strip() for symbol in 
                              disjunct.replace(")", "").replace("(", "").split("|")
                              }
@@ -103,4 +104,39 @@ class CnfConverterTests(unittest.TestCase):
             parsed = proplogic.parse_sentence(formula)
             result_operator = parsed[0]
             self.assertNotEqual(result_operator, operator, msg="{}/{}".format(formula, operator))
+
+class ResolutionProverTests(unittest.TestCase):
+    def test_kb_parsing(self):
+        formulae = [
+            "(A => B | D)",
+            "((A & B) => C)",
+            "(C <=> !D)",
+        ]
+        kb = proplogic.parse_cnf_knowledge_base("\n".join(formulae))
+        expected = "(!A | B | D) & (!A | !B | C) & (!C | !D) & (C | D)"
+        expected_cnf = proplogic.parse_cnf_sentence(expected)
+        self.assertCountEqual(kb, expected_cnf)
+
+        and_concatenation = proplogic.parse_cnf_sentence(" & ".join(formulae))
+        self.assertCountEqual(kb, and_concatenation)
+
+    def test_prover_truth(self):
+        # Wumpus sample, aima p.256 
+        #    (B11 <=> (P12 | P21)) & !B11
+        formulae = "(B11 <=> (P12 | P21)) & !B11"
+        kb = proplogic.parse_cnf_knowledge_base(formulae)
+        query = "!P12"
+
+        result = proplogic.resolution_prover(kb, query)
+        self.assertTrue(result)
+
+    def test_prover_false(self):
+        # Wumpus sample, aima p.256 
+        formulae = "(B11 <=> (P12 | P21)) & !B11"
+        kb = proplogic.parse_cnf_knowledge_base(formulae)
+        query = "P12"
+
+        result = proplogic.resolution_prover(kb, query)
+        self.assertFalse(result)
+
 

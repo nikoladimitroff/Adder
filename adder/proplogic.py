@@ -48,6 +48,8 @@ class _Braces:
             
         return result
 
+
+    @staticmethod
     def brace_replace(text):
         braces = 0
         tlb = False
@@ -75,6 +77,7 @@ class _Braces:
 
         return (re.sub("\*+", _Braces.Placeholder, result), replacement_table)
     
+    @staticmethod
     def restore_braces(text, replacement_table):
         for entry in replacement_table:
             text = text.replace("({0})".format(_Braces.Placeholder), entry, 1)
@@ -84,10 +87,10 @@ class _Braces:
 
 class DefiniteClause:
     def __init__(self, text):
-        self.premises, self.conclusion = self._parse(text)
+        self.premises, self.conclusion = self.__parse(text)
         self.is_fact = len(self.premises) == 0
 
-    def _parse(self, text):
+    def __parse(self, text):
         if LogicOperator.Implication in text:
             lhs, rhs = text.split(LogicOperator.Implication)
             premises = {symbol.strip() for symbol in lhs.split(LogicOperator.Conjuction)}
@@ -119,7 +122,7 @@ class DefiniteClause:
         return hash(str(self))
 
 
-def parse_definite_clauses(text):
+def parse_definite_knowledge_base(text):
     return [DefiniteClause(clause) for clause in text.strip().split("\n")]
 
 
@@ -169,7 +172,36 @@ def __check_clause(kb, true_symbols, checked, clause):
     return all
 
 def resolution_prover(knowledge_base, query):
-    pass
+    not_query_cnf = parse_cnf_sentence("{0}({1})".format(LogicOperator.Negation, query))
+    clauses = knowledge_base + not_query_cnf
+    while True:
+        new_inferrences = []
+        for c1, c2 in itertools.product(clauses, clauses):
+            if c1 is c2: continue
+            resolvents = __resolve(c1, c2)
+            if set() in resolvents:
+                return True
+
+            for resolvent in resolvents:
+                if resolvent not in clauses and resolvent not in new_inferrences:
+                    new_inferrences.append(resolvent)
+        if len(new_inferrences) == 0:
+            return False
+        clauses += new_inferrences
+
+@utils.memoize
+def __resolve(first_clause, second_clause):
+    resolvents = []
+    __resolve_single_sided(first_clause, second_clause, resolvents)
+    __resolve_single_sided(second_clause, first_clause, resolvents)
+    return resolvents
+
+
+def __resolve_single_sided(c1, c2, resolvents):
+    for symbol in c1:
+        negation = LogicOperator.Negation + symbol
+        if negation in c2:
+            resolvents.append(c1.union(c2).difference({symbol, negation}))
 
 
 def __equivalence_cnf(operands):
@@ -247,7 +279,11 @@ __OPERATOR_PARSERS = {
     LogicOperator.Negation: __negation_cnf
 }
 
-def parse_cnf_clause(sentence):
+def parse_cnf_knowledge_base(text):
+    return [clause for sentence in text.strip().split("\n") 
+            for clause in parse_cnf_sentence(sentence)]
+
+def parse_cnf_sentence(sentence):
     cnf = _Braces.flatten_braces(__convert_to_cnf(sentence))
    
     clauses = []
