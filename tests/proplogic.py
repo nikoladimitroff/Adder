@@ -18,7 +18,7 @@ class DefiniteClausesTests(unittest.TestCase):
                 P => Q
         """
 
-        self.kb = proplogic.parse_definite_knowledge_base(implications)
+        self.kb = proplogic.DefiniteKnowledgeBase(implications)
 
     def test_parsing_kb(self):
         dnf = """A
@@ -30,21 +30,21 @@ class DefiniteClausesTests(unittest.TestCase):
                 !P | Q
         """
         
-        parsed_dnf = proplogic.parse_definite_knowledge_base(dnf)
+        parsed_dnf = proplogic.DefiniteKnowledgeBase(dnf)
         self.assertEqual(parsed_dnf, self.kb)
 
     def test_fc_sample(self):
-        result = proplogic.forward_chaining(self.kb, "Q")
+        result = proplogic.forward_chaining(self.kb.kb, "Q")
         self.assertTrue(result)
 
         
     def test_bs_sample(self):
-        result = proplogic.backward_chaining(self.kb, "Q")
+        result = proplogic.backward_chaining(self.kb.kb, "Q")
         self.assertTrue(result)
 
     def test_failure(self):
-        result_bc = proplogic.backward_chaining(self.kb, "T")
-        result_fc = proplogic.forward_chaining(self.kb, "T")
+        result_bc = proplogic.backward_chaining(self.kb.kb, "T")
+        result_fc = proplogic.forward_chaining(self.kb.kb, "T")
         self.assertFalse(result_bc)
         self.assertFalse(result_fc)
 
@@ -105,38 +105,41 @@ class CnfConverterTests(unittest.TestCase):
             result_operator = parsed[0]
             self.assertNotEqual(result_operator, operator, msg="{}/{}".format(formula, operator))
 
-class ResolutionProverTests(unittest.TestCase):
+        
     def test_kb_parsing(self):
         formulae = [
             "(A => B | D)",
             "((A & B) => C)",
             "(C <=> !D)",
         ]
-        kb = proplogic.parse_cnf_knowledge_base("\n".join(formulae))
+        kb = proplogic.PlKnowledgeBase("\n".join(formulae))
         expected = "(!A | B | D) & (!A | !B | C) & (!C | !D) & (C | D)"
         expected_cnf = proplogic.parse_cnf_sentence(expected)
-        self.assertCountEqual(kb, expected_cnf)
+        self.assertCountEqual(kb.raw_kb, expected_cnf)
 
         and_concatenation = proplogic.parse_cnf_sentence(" & ".join(formulae))
-        self.assertCountEqual(kb, and_concatenation)
+        self.assertCountEqual(kb.raw_kb, and_concatenation)
+
+
+class ResolutionProverTests(unittest.TestCase):
 
     def test_prover_truth(self):
         # Wumpus sample, aima p.256 
         #    (B11 <=> (P12 | P21)) & !B11
         formulae = "(B11 <=> (P12 | P21)) & !B11"
-        kb = proplogic.parse_cnf_knowledge_base(formulae)
+        kb = proplogic.PlKnowledgeBase(formulae)
         query = "!P12"
 
-        result = proplogic.resolution_prover(kb, query)
+        result = kb.ask(query)
         self.assertTrue(result)
 
     def test_prover_false(self):
         # Wumpus sample, aima p.256 
         formulae = "(B11 <=> (P12 | P21)) & !B11"
-        kb = proplogic.parse_cnf_knowledge_base(formulae)
+        kb = proplogic.PlKnowledgeBase(formulae)
         query = "P12"
-
-        result = proplogic.resolution_prover(kb, query)
+        
+        result = kb.ask(query)
         self.assertFalse(result)
 
 

@@ -5,7 +5,7 @@ import random
 
 from adder.utils import InvalidArgumentError
 
-class _Node:
+class Node:
     def __init__(self, state, parent, action, path_cost):
         self.__state = state
         self.__parent = parent
@@ -48,7 +48,7 @@ class Problem:
         action = action
         path_cost = node.path_cost + self.step_cost(node.state, action)
         
-        child = _Node(state, parent, action, path_cost)
+        child = Node(state, parent, action, path_cost)
         return child
         
     def actions_iter(self, state):
@@ -95,7 +95,7 @@ class _GraphProblem(Problem):
             raise InvalidArgumentError("goal must be be a node in the graph")
             
         self.graph = graph
-        self.initial = _Node(root, None, None, 0)
+        self.initial = Node(root, None, None, 0)
         self.goal = goal
         
     def actions_iter(self, state):
@@ -105,7 +105,7 @@ class _GraphProblem(Problem):
         return self.graph.edge_cost(state, action)
         
     def result(self, state, action):
-        return action if action in self.graph.children_iter(state) else None                      
+        return action if action in self.graph.children_iter(state) else None
         
     def goal_test(self, state):
         return state == self.goal
@@ -127,7 +127,7 @@ class _NPuzzleProblem(Problem):
             raise InvalidArgumentError("The size of the board must be a exact square!")
 
         self.board_size = int(self.board_size)
-        self.initial = _Node(initial, None, None, 0)
+        self.initial = Node(initial, None, None, 0)
         self.goal = goal
         
     def _swap_letters(self, state, first, second):
@@ -185,7 +185,7 @@ class _NQueensProblem(Problem):
     def __init__(self, size, initial=None):
         self.size = size
         initial_state = initial if initial else _NQueensProblem.generate_random_state(size)
-        self.initial = _Node(initial_state, None, None, 0)
+        self.initial = Node(initial_state, None, None, 0)
         
     def generate_random_state(size):
         return tuple(random.randint(0, size) for i in range(size))
@@ -235,7 +235,7 @@ class ProblemFactory:
 
     def from_functions(self, initial_state, actions, step_cost, result, goal_test):
         problem = Problem()
-        problem.initial = _Node(initial_state, None, None, 0)
+        problem.initial = Node(initial_state, None, None, 0)
         problem.actions_iter = actions
         problem.step_cost = step_cost
         problem.result = result

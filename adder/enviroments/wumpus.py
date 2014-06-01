@@ -1,22 +1,27 @@
 from itertools import product
+from collections import namedtuple
 import random
+from adder.proplogic import PlKnowledgeBase
+from adder.problem import Problem
+from adder.problem import Node
+from adder.search import astar
 
-class _WumpusWorldAxiomatizer:
+class _Axiomatizer:
     FACTS = [ 
         "!P11",
         "!W11",
         "L11_0",
         "WumpusAlive_0",
-        "FaceEast_0",
+        "FacingEast_0",
         "HaveArrow_0",
     ]
 
     def __init__(self, size):
         self.size = size
 
-    def __wumpus_world(self):
+    def wumpus_world(self):
         return product(range(1, self.size + 1), range(1, self.size + 1))
-        
+ 
     def __neighbours(self, row, col):
         neighbours = []
         if row > 1:
@@ -41,14 +46,14 @@ class _WumpusWorldAxiomatizer:
         stench_axiom = "S{0}{1} <=> ({2})".format(row, col, wumpus_disjuncts)
         
         return breeze_axiom, stench_axiom
-        
+
     def __wumpus_axioms(self):
         wumpus_existence = " | ".join(["W{0}{1}".format(row, col) for row, col in
-                                       self.__wumpus_world()])
+                                       self.wumpus_world()])
        
         wumpus_symbols = []
-        for row1, col1 in self.__wumpus_world():
-            for row2, col2 in self.__wumpus_world():
+        for row1, col1 in self.wumpus_world():
+            for row2, col2 in self.wumpus_world():
                 if (row1, col1) >= (row2, col2):
                     continue
                 wumpus_symbols.append("(!W{0}{1} | !W{2}{3})"
@@ -60,7 +65,7 @@ class _WumpusWorldAxiomatizer:
         
     def __percepts(self, time):
         percept_axioms = []
-        for row, col in self.__wumpus_world():
+        for row, col in self.wumpus_world():
             breeze = "L{0}{1}_{2} => (Breeze_{2} <=> B{0}{1})".format(row, col, time)
             stench = "L{0}{1}_{2} => (Stench_{2} <=> S{0}{1})".format(row, col, time)
             percept_axioms += breeze, stench
@@ -81,8 +86,8 @@ class _WumpusWorldAxiomatizer:
         axioms += east, north, west, south
         
             
-        location_pattern = "| (L{0}{1}_{2} & ({3} & Forward_{2}))"
-        for row, col in self.__wumpus_world():
+        location_pattern = " | (L{0}{1}_{2} & ({3} & Forward_{2}))"
+        for row, col in self.wumpus_world():
             location = "L{0}{1}_{2} <=> " \
                         "(L{0}{1}_{3} & (!Forward_{3} | Bump_{2}))" \
                         .format(row, col, time + 1, time)
@@ -99,21 +104,38 @@ class _WumpusWorldAxiomatizer:
                 
         return axioms
 
+    def __helper_axioms(self, time):
+        if time > 0:
+            ok_axioms = ["OK{0}{1}_{2} <=> OK{0}{1}_{3} | (!P{0}{1} & (!W{0}{1} | WumpusAlive_{2}))" \
+                         .format(row, col, time, time - 1)
+                         for row, col in self.wumpus_world()]
+        else:
+            ok_axioms = ["OK{0}{1}_{2} <=> !P{0}{1} & (!W{0}{1} | WumpusAlive_{2})" \
+                         .format(row, col, time, time - 1)
+                         for row, col in self.wumpus_world()]
+
+
+        return ok_axioms
+
     def generate_atemportal(self):
-        for i, j in self.__wumpus_world():
-            kb += self.__breeze_stench(i, j)
+        axioms = _Axiomatizer.FACTS[:]
+        for i, j in self.wumpus_world():
+            axioms += self.__breeze_stench(i, j)
             
-        kb += self.__wumpus_axioms()
+        axioms += self.__wumpus_axioms()
+
+        return axioms
 
     def generate_temporal(self, time):
-        return self.__percepts(time) + self.__successor_state_axioms(time)
+        return self.__percepts(time) + self.__successor_state_axioms(time) + self.__helper_axioms(time)
 
 
-class WumpusCell:
+class Cell:
     Empty = "E"
     Pit = "P"
     Wumpus = "W"
     Gold = "G"
+
 
 class Orientation:
     South = 0
@@ -122,13 +144,13 @@ class Orientation:
     West = 3
 
 class Actions:
-    Forward = 0
-    Shoot = 1
-    Turn = 2
-    Grab = 3
-    Climb = 4
+    Forward = "Forward_{0}"
+    Shoot = "Shoot_{0}"
+    Turn = "Turn_{0}"
+    Grab = "Grab_{0}"
+    Climb = "Climb_{0}"
 
-class WumpusWorld:
+class World:
     def __init__(self, size, grid=None):
         self.size = size
         if not grid:
@@ -137,7 +159,7 @@ class WumpusWorld:
 
         for i in range(size):
             for j in range(size):
-                if self.grid[i][j] == WumpusCell.Wumpus:
+                if self.grid[i][j] == Cell.Wumpus:
                     self.wumpus = (i, j)
                     break
 
@@ -145,14 +167,24 @@ class WumpusWorld:
             raise RuntimeError("There's is no wumpus in the world")
 
 
-        hero = Object()
-        hero.position = (1, 1)
-        hero.orientation = Orientation.South
-        hero.has_arrow = True
+        self.hero = namedtuple("Hero", ["position", "orientation", "has_arrow"])
+        self.hero.position = (1, 1)
+        self.hero.orientation = Orientation.South
+        self.hero.has_arrow = True
         self.gold_taken = False
         self.wumpus_alive = True
-
-        
+ 
+    @staticmethod
+    def get_movement_vector(orientation):
+        if orientation == Orientation.East:
+            return (0, 1)
+        if orientation == Orientation.North:
+            return (-1, 0)
+        if orientation == Orientation.West:
+            return (0, -1)
+        if orientation == Orientation.South:
+            return (1, 0)        
+           
     def __neighbours(self, row, col):
         row -= 1
         col -= 1
@@ -168,13 +200,20 @@ class WumpusWorld:
             
         return neighbours
 
-    def __generate_world():
-        grid = [
-            [WumpusCell.Empty, WumpusCell.Empty, WumpusCell.Wumpus, WumpusCell.Empty],
-            [WumpusCell.Empty, WumpusCell.Empty, WumpusCell.Gold, WumpusCell.Empty],
-            [WumpusCell.Pit, WumpusCell.Empty, WumpusCell.Pit, WumpusCell.Empty],
-            [WumpusCell.Empty, WumpusCell.Empty, WumpusCell.Empty, WumpusCell.Pit]
-        ]
+    def __generate_world(self):
+        if self.size == 4:
+            grid = [
+                [Cell.Empty, Cell.Empty, Cell.Wumpus, Cell.Empty],
+                [Cell.Empty, Cell.Empty, Cell.Gold, Cell.Empty],
+                [Cell.Pit, Cell.Empty, Cell.Pit, Cell.Empty],
+                [Cell.Empty, Cell.Empty, Cell.Empty, Cell.Pit]
+            ]
+        elif self.size == 3:
+            grid = [
+                [Cell.Empty, Cell.Empty, Cell.Empty],
+                [Cell.Gold, Cell.Empty, Cell.Empty],
+                [Cell.Empty, Cell.Empty, Cell.Wumpus]
+            ]
 
         return grid
 
@@ -184,19 +223,10 @@ class WumpusWorld:
                position[1] < 1 or \
                position[1] >= self.size
 
-    def __get_movement_vector(self):
-        if self.hero.orientation == Orientation.East:
-            return (0, 1)
-        if self.hero.orientation == Orientation.North:
-            return (-1, 0)
-        if self.hero.orientation == Orientation.West:
-            return (0, -1)
-        if self.hero.orientation == Orientation.South:
-            return (1, 0)
 
     def __try_move_forward(self):      
-        movement = self.__get_movement_vector()
         hero = self.hero
+        movement = World.get_movement_vector(hero.orientation)
         hero.position[0] += movement[0]
         hero.position[1] += movement[1]
         if self.__out_of_bounds(hero.position):
@@ -213,7 +243,7 @@ class WumpusWorld:
             return False
         hero.has_arrow = False
 
-        movement = self.__get_movement_vector()
+        movement = World.get_movement_vector(hero.orientation)
         arrow_position = tuple(hero.position)
         while not self.__out_of_bounds(arrow_position):
             arrow_position[0] += movement[0]
@@ -225,9 +255,9 @@ class WumpusWorld:
         return False
 
     def update(self, action):
-        neighbours = self.__neighbours(self.player.position)
-        breeze = len([cell == WumpusCell.Pit for cell in neighbours]) != 0
-        stench = len([cell == WumpusCell.Wumpus for cell in neighbours]) != 0
+        neighbours = self.__neighbours(*self.hero.position)
+        breeze = len([cell == Cell.Pit for cell in neighbours]) != 0
+        stench = len([cell == Cell.Wumpus for cell in neighbours]) != 0
         glitter = self.grid[self.hero.position[0] - 1][self.hero.position[1] - 1]
         bump = False
         scream = False
@@ -248,7 +278,96 @@ class WumpusWorld:
         return (breeze, stench, glitter, bump, scream)
 
 
-class HybridWumpusAgent:
+class PlanningProblem(Problem):
+    def __init__(self, current_position, current_orientation, goal, safe_cells):
+        self.goal = goal
+        self.cells = safe_cells
+        initial_state = (current_position, current_orientation)
+        self.initial = Node(initial_state, None, None, 0) 
+
+    def actions_iter(self, state):
+        return [Actions.Forward, Actions.Turn]
+        
+    def step_cost(self, state, action):
+        return 1
+        
+    def result(self, state, action):
+        position, orientation = state
+        if action == Actions.Forward:
+            movement = World.get_movement_vector(orientation)
+            new_position = (position[0] + movement[0], position[1] + movement[1])
+            if new_position in self.cells:
+                return (new_position, orientation)
+            else:
+                return state
+        elif action == Actions.Turn:
+            orientation = (orientation + 1) % 4
+            return (position, orientation)
+
+    def goal_test(self, state):
+        return state[0] == self.goal
+
+    def heuristic(self, state):
+        # manhattan
+        return abs(state[0] - self.goal[0]) + abs(state[1] - self.goal[1])
+
+
+class HybridAgent:
     def __init__(self, size):
-        self.axiomatier = _WumpusWorldAxiomatizer(size)
-        self.kb = self.axiomatier.generate_atemportal()
+        self.axiomatizer = _Axiomatizer(size)
+        self.kb = PlKnowledgeBase("\n".join(self.axiomatizer.generate_atemportal()))
+        self.time = -1
+        self.plan = []
+
+    def __make_percept_sentence(self, percept):
+        percepts_at_time = [sentence.format(self.time) for sentence in
+                            ["Breeze_{0}", "Stench_{0}", "Glitter_{0}", "Bump_{0}", "Scream_{0}"]]
+        percept_sentence = " & ".join(percepts_at_time)
+
+        return percept_sentence
+
+    def __make_action_sentence(self, action):
+        return action.format(self.time)
+
+    def update(self, percept):
+        self.time += 1
+        percept_sentence = self.__make_percept_sentence(percept)
+        self.kb.tell(percept_sentence)
+        self.kb.tell(*self.axiomatizer.generate_temporal(self.time))
+        safe_cells = [(row, col) for row, col in self.axiomatizer.wumpus_world()
+                      if self.kb.ask("OK{0}{1}_{2}".format(row, col, self.time))]
+
+        if self.kb.ask("Glitter_{0}".format(self.time)):
+            self.plan = [Actions.Grab] + self.plan_route_to((1, 1), safe_cells) \
+                         + [Actions.Climb]
+
+        if len(plan) == 0:
+            unvisited = {(row, col) for row, col in self.axiomatizer.wumpus_world()
+                         for time in range(self.time)
+                         if self.kb.ask("L{0}{1}_{2}".format(row, col, time))}
+            unvisited_and_safe = unvisited.intersection(safe_cells)
+            target = univisited_and_safe.pop()
+            self.plan = self.plan_route_to(target, safe_cells)
+
+        action = plan.pop()
+        self.kb.tell(self.__make_action_sentence(action))
+
+        return action
+
+    def plan_route_to(self, goal, cells):
+        current_position = (-1, -1)
+        for row, col in self.axiomatizer.wumpus_world():
+            if self.kb.ask("L{0}{1}_{2}".format(row, col, self.time)):
+                current_position = row, col
+                break
+        
+        orientation = Orientation.South
+        if self.kb.ask("FacingEast_{0}".format(self.time)):
+            orientation = Orientation.East
+        elif self.kb.ask("FacingNorth_{0}".format(self.time)):
+            orientation = Orientation.North
+        elif self.kb.ask("FacingWest_{0}".format(self.time)):
+            orientation = Orientation.West
+
+        problem = PlanningProblem(current_position, orientation, goal, cells)
+        return astar(problem, problem.heuristic)

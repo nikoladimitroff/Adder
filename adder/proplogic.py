@@ -122,9 +122,22 @@ class DefiniteClause:
         return hash(str(self))
 
 
-def parse_definite_knowledge_base(text):
-    return [DefiniteClause(clause) for clause in text.strip().split("\n")]
+class DefiniteKnowledgeBase:
+    def __init__(self, text):
+        self.kb = [DefiniteClause(clause) for clause in text.strip().split("\n")]
 
+    def ask(self, query):
+        return backward_chaining(self.kb, query)
+
+    def tell(self, *args):
+        for sentence in args:
+            self.kb += DefiniteClause(sentence.strip())
+
+    def __eq__(self, other):
+        return self.kb == other.kb
+
+    def __neq__(self, other):
+        return not (self == other)
 
 def forward_chaining(knowledge_base, query):
     premises_count = { clause: len(clause.premises) for clause in knowledge_base}
@@ -171,20 +184,45 @@ def __check_clause(kb, true_symbols, checked, clause):
             all = all and is_premise_true
     return all
 
+
+class PlKnowledgeBase:    
+    def __init__(self, text):
+        self.raw_kb = parse_cnf_knowledge_base(text)
+
+    def ask(self, query):
+        return resolution_prover(self.raw_kb, query)
+
+    def tell(self, *args):
+        for sentence in args:
+            print(sentence)
+            self.raw_kb += parse_cnf_sentence(sentence)
+
+    def __eq__(self, other):
+        return self.raw_kb == other.kb
+
+    def __neq__(self, other):
+        return not (self == other)
+
+
+
 def resolution_prover(knowledge_base, query):
     not_query_cnf = parse_cnf_sentence("{0}({1})".format(LogicOperator.Negation, query))
-    clauses = knowledge_base + not_query_cnf
+    clauses = not_query_cnf + knowledge_base
     while True:
         new_inferrences = []
-        for c1, c2 in itertools.product(clauses, clauses):
-            if c1 is c2: continue
-            resolvents = __resolve(c1, c2)
-            if set() in resolvents:
-                return True
+        clauses_len = len(clauses)
+        for i in range(clauses_len):
+            for j in range(i + 1, clauses_len):
+                c1 = clauses[i]
+                c2 = clauses[j]
+                resolvents = __resolve(c1, c2)
+                if set() in resolvents:
+                    return True
 
-            for resolvent in resolvents:
-                if resolvent not in clauses and resolvent not in new_inferrences:
-                    new_inferrences.append(resolvent)
+                for resolvent in resolvents:
+                    if not __is_disjunct_true(resolvent) and \
+                       resolvent not in clauses and resolvent not in new_inferrences:
+                        new_inferrences.append(resolvent)
         if len(new_inferrences) == 0:
             return False
         clauses += new_inferrences
