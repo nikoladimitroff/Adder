@@ -1,6 +1,7 @@
 from itertools import product
 from collections import namedtuple
 import random
+from adder import proplogic
 from adder.proplogic import PlKnowledgeBase
 from adder.problem import Problem
 from adder.problem import Node
@@ -63,15 +64,15 @@ class _Axiomatizer:
         
         return wumpus_existence, wumpus_unique
         
-    def __percepts(self, time):
+    def __percepts(self, time, position):
         percept_axioms = []
-        for row, col in self.wumpus_world():
-            breeze = "L{0}{1}_{2} => (Breeze_{2} <=> B{0}{1})".format(row, col, time)
-            stench = "L{0}{1}_{2} => (Stench_{2} <=> S{0}{1})".format(row, col, time)
-            percept_axioms += breeze, stench
+        row, col = position
+        breeze = "L{0}{1}_{2} => (Breeze_{2} <=> B{0}{1})".format(row, col, time)
+        stench = "L{0}{1}_{2} => (Stench_{2} <=> S{0}{1})".format(row, col, time)
+        percept_axioms += breeze, stench
         return percept_axioms
         
-    def __successor_state_axioms(self, time):
+    def __successor_state_axioms(self, time, position):
         axioms = []
         arrow = "HaveArrow_{0} <=> (HaveArrow_{1} & !Shoot_{1})".format(time + 1, time)
         axioms.append(arrow)
@@ -85,22 +86,21 @@ class _Axiomatizer:
         south = "FacingSouth_{0} <=> (FacingWest_{1} & Turn_{1})".format(time + 1, time)
         axioms += east, north, west, south
         
-            
+        row, col = position    
         location_pattern = " | (L{0}{1}_{2} & ({3} & Forward_{2}))"
-        for row, col in self.wumpus_world():
-            location = "L{0}{1}_{2} <=> " \
-                        "(L{0}{1}_{3} & (!Forward_{3} | Bump_{2}))" \
-                        .format(row, col, time + 1, time)
+        location = "L{0}{1}_{2} <=> " \
+                    "(L{0}{1}_{3} & (!Forward_{3} | Bump_{2}))" \
+                    .format(row, col, time + 1, time)
                 
-            if row > 1:
-                location += location_pattern.format(row - 1, col, time, "South_{0}".format(time))
-            if row < self.size:
-                location += location_pattern.format(row + 1, col, time, "North_{0}".format(time))
-            if col > 1:
-                location += location_pattern.format(row, col - 1, time, "West_{0}".format(time))
-            if col < self.size:
-                location += location_pattern.format(row, col + 1, time, "East_{0}".format(time))
-            axioms.append(location)
+        if row > 1:
+            location += location_pattern.format(row - 1, col, time, "South_{0}".format(time))
+        if row < self.size:
+            location += location_pattern.format(row + 1, col, time, "North_{0}".format(time))
+        if col > 1:
+            location += location_pattern.format(row, col - 1, time, "West_{0}".format(time))
+        if col < self.size:
+            location += location_pattern.format(row, col + 1, time, "East_{0}".format(time))
+        axioms.append(location)
                 
         return axioms
 
@@ -126,8 +126,10 @@ class _Axiomatizer:
 
         return axioms
 
-    def generate_temporal(self, time):
-        return self.__percepts(time) + self.__successor_state_axioms(time) + self.__helper_axioms(time)
+    def generate_temporal(self, time, position):
+        return self.__percepts(time, position) + \
+               self.__successor_state_axioms(time, position) + \
+               self.__helper_axioms(time)
 
 
 class Cell:
@@ -256,9 +258,9 @@ class World:
 
     def update(self, action):
         neighbours = self.__neighbours(*self.hero.position)
-        breeze = len([cell == Cell.Pit for cell in neighbours]) != 0
-        stench = len([cell == Cell.Wumpus for cell in neighbours]) != 0
-        glitter = self.grid[self.hero.position[0] - 1][self.hero.position[1] - 1]
+        breeze = len([cell for cell in neighbours if cell == Cell.Pit]) != 0
+        stench = len([cell for cell in neighbours if cell == Cell.Wumpus]) != 0
+        glitter = self.grid[self.hero.position[0] - 1][self.hero.position[1] - 1] == Cell.Gold
         bump = False
         scream = False
 
@@ -318,10 +320,16 @@ class HybridAgent:
         self.kb = PlKnowledgeBase("\n".join(self.axiomatizer.generate_atemportal()))
         self.time = -1
         self.plan = []
+        self.position = (1, 1)
 
     def __make_percept_sentence(self, percept):
         percepts_at_time = [sentence.format(self.time) for sentence in
                             ["Breeze_{0}", "Stench_{0}", "Glitter_{0}", "Bump_{0}", "Scream_{0}"]]
+
+        for i in range(len(percept)):
+            if not percept[i]:
+                percepts_at_time[i] = "!" + percepts_at_time[i]
+
         percept_sentence = " & ".join(percepts_at_time)
 
         return percept_sentence
@@ -333,7 +341,31 @@ class HybridAgent:
         self.time += 1
         percept_sentence = self.__make_percept_sentence(percept)
         self.kb.tell(percept_sentence)
-        self.kb.tell(*self.axiomatizer.generate_temporal(self.time))
+        self.kb.tell(*self.axiomatizer.generate_temporal(self.time, self.position))
+
+        test_kb = PlKnowledgeBase("""Breeze_0
+                WumpusAlive_0
+                Stench_0
+                L11_0
+                !P11
+                !W11
+                S11 <=> (W21 | W12)
+                B11 <=> (P21 | P12)
+                L11_0 => (B11 <=> Breeze_0)
+                L11_0 => (Stench_0 <=> S11)
+                OK12_0 <=> !P12 & (!W12 | WumpusAlive_0)
+            """)         
+        #
+                #
+                #
+        
+        #for x in test_kb:
+        #    if x not in self.kb.raw_kb:
+        #        print(x)
+        
+
+        return self.kb.ask("OK33_0")
+
         safe_cells = [(row, col) for row, col in self.axiomatizer.wumpus_world()
                       if self.kb.ask("OK{0}{1}_{2}".format(row, col, self.time))]
 
@@ -358,7 +390,7 @@ class HybridAgent:
         current_position = (-1, -1)
         for row, col in self.axiomatizer.wumpus_world():
             if self.kb.ask("L{0}{1}_{2}".format(row, col, self.time)):
-                current_position = row, col
+                self.position = row, col
                 break
         
         orientation = Orientation.South
@@ -369,5 +401,5 @@ class HybridAgent:
         elif self.kb.ask("FacingWest_{0}".format(self.time)):
             orientation = Orientation.West
 
-        problem = PlanningProblem(current_position, orientation, goal, cells)
+        problem = PlanningProblem(self.position, orientation, goal, cells)
         return astar(problem, problem.heuristic)

@@ -185,7 +185,7 @@ def __check_clause(kb, true_symbols, checked, clause):
     return all
 
 
-class PlKnowledgeBase:    
+class PlKnowledgeBase:
     def __init__(self, text):
         self.raw_kb = parse_cnf_knowledge_base(text)
 
@@ -194,7 +194,6 @@ class PlKnowledgeBase:
 
     def tell(self, *args):
         for sentence in args:
-            print(sentence)
             self.raw_kb += parse_cnf_sentence(sentence)
 
     def __eq__(self, other):
@@ -204,30 +203,26 @@ class PlKnowledgeBase:
         return not (self == other)
 
 
-
 def resolution_prover(knowledge_base, query):
     not_query_cnf = parse_cnf_sentence("{0}({1})".format(LogicOperator.Negation, query))
     clauses = not_query_cnf + knowledge_base
+    empty_set = frozenset()
     while True:
-        new_inferrences = []
-        clauses_len = len(clauses)
-        for i in range(clauses_len):
-            for j in range(i + 1, clauses_len):
-                c1 = clauses[i]
-                c2 = clauses[j]
-                resolvents = __resolve(c1, c2)
-                if set() in resolvents:
-                    return True
+        new_inferrences = set()
+        pairs = [(clauses[i], clauses[j]) for i in range(len(clauses))
+                 for j in range(i + 1, len(clauses))]
+        for c1, c2 in pairs:
+            resolvents = __resolve(c1, c2)
+            if empty_set in resolvents:
+                return True
 
-                for resolvent in resolvents:
-                    if not __is_disjunct_true(resolvent) and \
-                       resolvent not in clauses and resolvent not in new_inferrences:
-                        new_inferrences.append(resolvent)
-        if len(new_inferrences) == 0:
+            new_inferrences.update(resolvents)
+            #print_cnf_clause(resolvents)
+        if new_inferrences.issubset(clauses):
             return False
-        clauses += new_inferrences
 
-@utils.memoize
+        clauses.extend(clause for clause in new_inferrences if clause not in clauses)
+
 def __resolve(first_clause, second_clause):
     resolvents = []
     __resolve_single_sided(first_clause, second_clause, resolvents)
@@ -239,7 +234,36 @@ def __resolve_single_sided(c1, c2, resolvents):
     for symbol in c1:
         negation = LogicOperator.Negation + symbol
         if negation in c2:
-            resolvents.append(c1.union(c2).difference({symbol, negation}))
+            resolvents.append(frozenset(c1.union(c2).difference({symbol, negation})))
+
+#@utils.memoize
+#def __resolve(first_clause, second_clause):
+#    resolvent = set(first_clause.union(second_clause))
+
+#    complimentary = False
+#    for symbol in resolvent:
+#        negation = LogicOperator.Negation + symbol
+#        if negation in resolvent:
+#            complimentary = symbol
+#            break
+
+#    if not complimentary:
+#        return False
+
+#    resolvent.remove(complimentary)
+#    resolvent.remove(LogicOperator.Negation + complimentary)
+
+#    return frozenset(resolvent) if not __is_disjunct_true(resolvent) else False
+
+
+#def __resolve_single_sided(c1, c2, resolvents):
+#    for symbol in c1:
+#        negation = LogicOperator.Negation + symbol
+#        if negation in c2:
+#            resolvent = set(c1)
+#            resolvent.update(c2)
+#            resolvent.difference_update({symbol, negation})
+#            resolvents.append(resolvent)
 
 
 def __equivalence_cnf(operands):
@@ -318,24 +342,25 @@ __OPERATOR_PARSERS = {
 }
 
 def parse_cnf_knowledge_base(text):
-    return [clause for sentence in text.strip().split("\n") 
+    return [clause 
+            for sentence in text.strip().split("\n") 
             for clause in parse_cnf_sentence(sentence)]
 
 def parse_cnf_sentence(sentence):
     cnf = _Braces.flatten_braces(__convert_to_cnf(sentence))
    
-    clauses = []
+    clauses = set()
     for disjunct_text in cnf.split(LogicOperator.Conjuction):
         disjunct_text = disjunct_text.replace(_Braces.Left, "") \
                             .replace(_Braces.Right, "")
         if len(disjunct_text) == 0:
             continue
 
-        disjunct = {symbol.strip() for symbol in 
-                    disjunct_text.split(LogicOperator.Disjunction)}
+        disjunct = frozenset(symbol.strip() for symbol in 
+                    disjunct_text.split(LogicOperator.Disjunction))
 
         if not __is_disjunct_true(disjunct):
-            clauses.append(disjunct)
+            clauses.add(disjunct)
 
     return __clean_clauses(clauses)
 
@@ -344,15 +369,10 @@ def __is_disjunct_true(disjunct):
                for symbol in disjunct)
 
 def __clean_clauses(clauses):
-    unique = []
-    for clause in clauses:
-        if clause not in unique:
-            unique.append(clause)
-    
     result = []
-    for clause in unique:
-        is_superset = any([conjuct < clause for conjuct in unique])
-        if not is_superset:
+    for clause in clauses:
+        is_superset_of_another_clause = any([conjuct < clause for conjuct in clauses])
+        if not is_superset_of_another_clause:
             result.append(clause)
 
     return result
@@ -424,5 +444,9 @@ def __get_operands(brace_replaced_sentence, operator):
 
 
 def print_cnf_clause(clause):
-    printable = "(" +") & (".join([" | ".join(disjunct) for disjunct in clause]) + ")"
-    return printable
+    if isinstance(clause, frozenset):
+        printable = " | ".join(sorted(clause))
+    else:
+        printable = "(" + ") & (".join([" | ".join(disjunct) for disjunct in clause]) + ")"
+    
+    print(printable)

@@ -141,5 +141,3 @@ class ResolutionProverTests(unittest.TestCase):
         
         result = kb.ask(query)
         self.assertFalse(result)
-
-
