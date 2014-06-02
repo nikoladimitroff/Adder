@@ -50,7 +50,6 @@ class _Braces:
             
         return result
 
-
     @staticmethod
     def brace_replace(text):
         braces = 0
@@ -95,15 +94,18 @@ class DefiniteClause:
     def __parse(self, text):
         if LogicOperator.Implication in text:
             lhs, rhs = text.split(LogicOperator.Implication)
-            premises = {symbol.strip() for symbol in lhs.split(LogicOperator.Conjuction)}
+
+            premises = {symbol.strip() for symbol in 
+                        lhs.split(LogicOperator.Conjuction)}
             conclusions = [rhs.strip()]
         else:
-            symbols = [symbol.strip() for symbol in text.split(LogicOperator.Disjunction)]
+            symbols = [symbol.strip() for symbol in 
+                       text.split(LogicOperator.Disjunction)]
+
             premises = {symbol[1:] for symbol in symbols 
                         if symbol[0] == LogicOperator.Negation }
             conclusions = [symbol for symbol in symbols 
                            if symbol[0] != LogicOperator.Negation]
-
         if len(conclusions) != 1:
             raise utils.InvalidArgumentException("The clause is not definite i.e. it doesn't have EXACTLY one positive symbol")
 
@@ -126,24 +128,24 @@ class DefiniteClause:
 
 class DefiniteKnowledgeBase:
     def __init__(self, text):
-        self.kb = [DefiniteClause(clause) for clause in text.strip().split("\n")]
+        self.raw_kb = [DefiniteClause(clause) for clause in text.strip().split("\n")]
 
     def ask(self, query):
-        return backward_chaining(self.kb, query)
+        return backward_chaining(self.raw_kb, query)
 
     def tell(self, *args):
         for sentence in args:
-            self.kb += DefiniteClause(sentence.strip())
+            self.raw_kb.append(DefiniteClause(sentence.strip()))
 
     def __eq__(self, other):
-        return self.kb == other.kb
+        return self.raw_kb == other.raw_kb
 
     def __neq__(self, other):
         return not (self == other)
 
 
 def forward_chaining(knowledge_base, query):
-    premises_count = { clause: len(clause.premises) for clause in knowledge_base}
+    premises_count = {clause: len(clause.premises) for clause in knowledge_base}
     inferred = {}
     true_symbols = [clause.conclusion for clause in knowledge_base if clause.is_fact]
 
@@ -165,7 +167,8 @@ def forward_chaining(knowledge_base, query):
 
 
 def backward_chaining(knowledge_base, query):
-    true_symbols = {clause.conclusion for clause in knowledge_base if clause.is_fact}
+    true_symbols = {clause.conclusion for clause in knowledge_base 
+                    if clause.is_fact}
 
     return __backward_chaining_step(knowledge_base, query, true_symbols, true_symbols)
 
@@ -177,16 +180,18 @@ def __backward_chaining_step(kb, query, true_symbols, checked):
     applicable_implications = (clause for clause in kb 
                                if query == clause.conclusion)
 
-    return any(__check_clause(kb, true_symbols, checked, clause) 
+    return any(__check_implication(kb, true_symbols, checked, clause)
                for clause in applicable_implications)
 
 
-def __check_clause(kb, true_symbols, checked, clause):
+def __check_implication(kb, true_symbols, checked, clause):
     all = True
     for premise in clause.premises:
         if premise not in checked:
-            is_premise_true = __backward_chaining_step(kb, premise, true_symbols, 
-                                                checked.union({premise}))
+            is_premise_true = __backward_chaining_step(kb, 
+                                                       premise, 
+                                                       true_symbols,
+                                                       checked.union({premise}))
             all = all and is_premise_true
     return all
 
@@ -204,22 +209,25 @@ class PlKnowledgeBase:
             self.raw_kb += parse_cnf_sentence(sentence)
 
     def __eq__(self, other):
-        return self.raw_kb == other.kb
+        return self.raw_kb == other.raw_kb
 
     def __neq__(self, other):
         return not (self == other)
 
 
 def resolution_prover(knowledge_base, query, max_clause_len=float("inf")):
-    not_query_cnf = parse_cnf_sentence("{0}({1})".format(LogicOperator.Negation, query))
+    negated_query = "{0}({1})".format(LogicOperator.Negation, query)
+    not_query_cnf = parse_cnf_sentence(negated_query)
     clauses = not_query_cnf + knowledge_base
     start_size = len(clauses)
     empty_set = frozenset()
     new_inferrences = set()
     while True:
         new_inferrences.clear()
-        pairs = [(clauses[i], clauses[j]) for i in range(len(clauses))
+        pairs = [(clauses[i], clauses[j]) 
+                 for i in range(len(clauses))
                  for j in range(i + 1, len(clauses))]
+
         for c1, c2 in pairs:
             resolvents = __resolve(c1, c2, max_clause_len)
             if empty_set in resolvents:
@@ -229,7 +237,8 @@ def resolution_prover(knowledge_base, query, max_clause_len=float("inf")):
         if new_inferrences.issubset(clauses):
             return False
 
-        clauses.extend(clause for clause in new_inferrences if clause not in clauses)
+        clauses.extend(clause for clause in new_inferrences 
+                       if clause not in clauses)
 
 
 @utils.memoize
@@ -237,7 +246,8 @@ def __resolve(first_clause, second_clause, max_len):
     resolvents = []
     __resolve_single_sided(first_clause, second_clause, resolvents)
     __resolve_single_sided(second_clause, first_clause, resolvents)
-    return [r for r in resolvents if len(r) < max_len and not __is_tautology(r)]
+    return [r for r in resolvents 
+            if len(r) < max_len and not __is_tautology(r)]
 
 
 def __resolve_single_sided(c1, c2, resolvents):
@@ -246,10 +256,12 @@ def __resolve_single_sided(c1, c2, resolvents):
         if negation in c2:
             resolvents.append(c1.union(c2).difference({symbol, negation}))
 
+
 def parse_cnf_knowledge_base(text):
     return [clause 
             for sentence in text.strip().split("\n") 
             for clause in parse_cnf_sentence(sentence)]
+
 
 def parse_cnf_sentence(sentence):
     cnf = _Braces.flatten_braces(__convert_to_cnf(sentence))
@@ -280,8 +292,8 @@ def __is_tautology(disjunct):
 def __clean_clauses(clauses):
     result = []
     for clause in clauses:
-        is_superset_of_another_clause = any([conjuct < clause for conjuct in clauses])
-        if not is_superset_of_another_clause:
+        is_superset_of_another = any(conjuct < clause for conjuct in clauses)
+        if not is_superset_of_another:
             result.append(clause)
 
     return result
@@ -312,7 +324,7 @@ def __disjunction_cnf(operands):
     for clause1 in first:
         for clause2 in second:
             cnf += "({0} {2} {1}) {3} ".format(clause1, clause2, 
-                                               LogicOperator.Disjunction, 
+                                               LogicOperator.Disjunction,
                                                LogicOperator.Conjuction)
 
     return cnf[:-2]
@@ -380,7 +392,6 @@ def __is_var(sentence):
 
 
 def parse_sentence(sentence):
-    # remove surrounding parenthesis
     sentence = _Braces.remove_surrounding_parenthesis(sentence.strip())
     brace_replaced = _Braces.brace_replace(sentence)
     operator = __get_operator(brace_replaced[0])

@@ -34,17 +34,22 @@ class DefiniteClausesTests(unittest.TestCase):
         self.assertEqual(parsed_dnf, self.kb)
 
     def test_fc_sample(self):
-        result = proplogic.forward_chaining(self.kb.kb, "Q")
-        self.assertTrue(result)
+        q = proplogic.forward_chaining(self.kb.raw_kb, "Q")
+        not_q = proplogic.forward_chaining(self.kb.raw_kb, "!Q")
+        self.assertTrue(q)
+        self.assertFalse(not_q)
+
 
         
     def test_bs_sample(self):
-        result = proplogic.backward_chaining(self.kb.kb, "Q")
-        self.assertTrue(result)
+        q = proplogic.backward_chaining(self.kb.raw_kb, "Q")
+        not_q = proplogic.backward_chaining(self.kb.raw_kb, "!Q")
+        self.assertTrue(q)
+        self.assertFalse(not_q)
 
     def test_failure(self):
-        result_bc = proplogic.backward_chaining(self.kb.kb, "T")
-        result_fc = proplogic.forward_chaining(self.kb.kb, "T")
+        result_bc = proplogic.backward_chaining(self.kb.raw_kb, "T")
+        result_fc = proplogic.forward_chaining(self.kb.raw_kb, "T")
         self.assertFalse(result_bc)
         self.assertFalse(result_fc)
 

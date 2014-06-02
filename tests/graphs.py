@@ -48,51 +48,58 @@ class GraphLoadingTests(unittest.TestCase):
                 self.assertEqual(graph.edge_cost(source, destination), cost)
     
     def assert_bulgaria_map_loaded(self, graph):
-        cities = { "Sofia", "Pernik", "Kustendil", "Dupnica", "Blagoevgrad", "Sandanski", "Kulata", "Botevgrad",
+        cities = { 
+            "Sofia", "Pernik", "Kustendil", "Dupnica", "Blagoevgrad", "Sandanski", "Kulata", "Botevgrad",
             "Vraca", "Montana", "Belogradchik", "Lom", "Vidin", "Lovech", "Pleven", "Tarnovo", "Biala", "Ruse",
             "Razgrad", "Shumen", "Dobrich", "Silistra", "Varna", "Burgas", "Iambol", "Plovdiv", "Karlovo", "StaraZagora",
             "Kazanlak", "Gabrovo", "Haskovo", "Kardzhali", "Smolian", "Pazardzhik" , "Pirdop", "Troian", "Sliven"
         }
         
-        some_edges = { "Sofia": {("Pernik", 28), ("Botevgrad", 64), ("Pazardzhik", 112), ("Pirdop", 80), ("Montana", 109)},
-                        "Pernik": {("Sofia", 28), ("Kustendil", 56), ("Dupnica", 53)},
-                        "Troian": {("Lovech", 34), ("Tarnovo", 97), ("Karlovo", 66), ("Pirdop", 99) },
-                    }
+        some_edges = { 
+            "Sofia": {("Pernik", 28), ("Botevgrad", 64), ("Pazardzhik", 112), ("Pirdop", 80), ("Montana", 109)},
+            "Pernik": {("Sofia", 28), ("Kustendil", 56), ("Dupnica", 53)},
+            "Troian": {("Lovech", 34), ("Tarnovo", 97), ("Karlovo", 66), ("Pirdop", 99) },
+        }
         self.assert_graph_loaded(graph, cities, some_edges)
         
     def assert_germany_map_loaded(self, graph):
-        cities = { "Frankfurt", "Mannheim", "Wurzburg", "Kassel", "Karlsruhe", "Augsburg",
-                   "Nurnberg", "Erfurt", "Munchen", "Stuttgart"
-                }
+        cities = { 
+            "Frankfurt", "Mannheim", "Wurzburg", "Kassel", "Karlsruhe", "Augsburg",
+            "Nurnberg", "Erfurt", "Munchen", "Stuttgart"
+        }
         
-        some_edges = { "Frankfurt": {("Mannheim", 85), ("Wurzburg", 217), ("Kassel", 173)},
-                       "Munchen": {("Augsburg", 84), ("Nurnberg", 167), ("Kassel", 502)},
-                       "Erfurt": {("Wurzburg", 186)},
-                       "Karlsruhe": {("Mannheim", 80), ("Augsburg", 250)},
-                    }
+        some_edges = { 
+            "Frankfurt": {("Mannheim", 85), ("Wurzburg", 217), ("Kassel", 173)},
+            "Munchen": {("Augsburg", 84), ("Nurnberg", 167), ("Kassel", 502)},
+            "Erfurt": {("Wurzburg", 186)},
+            "Karlsruhe": {("Mannheim", 80), ("Augsburg", 250)},
+        }
         self.assert_graph_loaded(graph, cities, some_edges)
         
     def assert_romania_map_loaded(self, graph):
-        cities = { "Oradea", "Zerind", "Arad", "Sibiu", "RimnicuVilcea", "Timisoara", "Lugoj", "Mehadia",
-                   "Drobeta", "Pitesti", "Fagaras", "Bucharest", "Urziceni", "Hirsova", "Vaslui",
-                   "Iasi", "Neamt", "Craiova", "Giugiu", "Eforie"
-                }
+        cities = { 
+            "Oradea", "Zerind", "Arad", "Sibiu", "RimnicuVilcea", "Timisoara", "Lugoj", "Mehadia",
+            "Drobeta", "Pitesti", "Fagaras", "Bucharest", "Urziceni", "Hirsova", "Vaslui",
+            "Iasi", "Neamt", "Craiova", "Giugiu", "Eforie"
+        }
                 
-        some_edges = { "Bucharest": {("Fagaras", 211), ("Giugiu", 90), ("Urziceni", 85), ("Pitesti", 101)},
-                       "Craiova": {("Drobeta", 120), ("Pitesti", 138), ("RimnicuVilcea", 146)},
-                       "Iasi": {("Neamt", 87), ("Vaslui", 92)},
-                    }
+        some_edges = { 
+            "Bucharest": {("Fagaras", 211), ("Giugiu", 90), ("Urziceni", 85), ("Pitesti", 101)},
+            "Craiova": {("Drobeta", 120), ("Pitesti", 138), ("RimnicuVilcea", 146)},
+            "Iasi": {("Neamt", 87), ("Vaslui", 92)},
+        }
                     
         self.assert_graph_loaded(graph, cities, some_edges)
         
     def assert_bulgaria_disconnected_map_loaded(self, graph):
         cities = { "Pernik", "Sofia", "Kustendil", "Dupnica", "Varna", "Burgas"}
                 
-        some_edges = { "Pernik": {("Sofia", 28)},
-                       "Kustendil": {("Dupnica", 41)},
-                       "Burgas": {("Varna", 128)},
-                    }
-                    
+        some_edges = { 
+            "Pernik": {("Sofia", 28)},
+            "Kustendil": {("Dupnica", 41)},
+            "Burgas": {("Varna", 128)},
+        }
+
         self.assert_graph_loaded(graph, cities, some_edges)
         
     def test_graph_load_from_string(self):

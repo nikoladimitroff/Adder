@@ -39,22 +39,33 @@ class SearchTests(unittest.TestCase):
             
         self.assertEqual(expected_cost, actual_cost)
         
-    def assert_solution(self, search_algorithm, graph_file_name, start_node, end_node, expected_sequence):
+    def assert_solution(self, 
+                        search_algorithm, 
+                        graph_file_name, 
+                        start_node, 
+                        end_node, 
+                        expected_sequence):
         expected = self.sequence_to_solution_format(expected_sequence)
         problem_instance, solution = self.run_search(search_algorithm, 
-                                        graph_file_name, 
-                                        start_node, 
-                                        end_node)
+                                                     graph_file_name, 
+                                                     start_node, 
+                                                     end_node)
         
         # If we expect failure and failure is returned, all is well
         if solution == expected_sequence == problem.FAILURE or \
            solution == expected_sequence == problem.SOLUTION_UNKNOWN:
             return
+
         # Else, assert that the solution matches the expected
         self.assertSequenceEqual(solution, expected)
         self.assert_cost(problem_instance, solution, expected)
         
-    def assert_nondeterministic_solution(self, search_algorithm, graph_file_name, start_node, end_node, expected_sequences):
+    def assert_nondeterministic_solution(self, 
+                                         search_algorithm, 
+                                         graph_file_name, 
+                                         start_node, 
+                                         end_node, 
+                                         expected_sequences):
         expected = list(map(self.sequence_to_solution_format, expected_sequences))
         has_passed = False
         # Assert all outcomes. If they fail, catch the exceptions and move on.
@@ -168,7 +179,8 @@ class AStarTests(SearchTests):
         
     def test_romania(self):  
         # Distances to Bucharest
-        heuristic_dict = { "Arad": 366, "Bucharest": 0, "Craiova": 160,
+        heuristic_dict = { 
+            "Arad": 366, "Bucharest": 0, "Craiova": 160,
             "Drobeta": 242, "Eforie": 161, "Fagaras": 176,
             "Giurgiu": 77, "Hirsova": 151, "Iasi": 226, "Lugoj": 244,
             "Mehadia": 241, "Neamt": 234, "Oradea": 380, "Pitesti": 100,
@@ -184,12 +196,15 @@ class AStarTests(SearchTests):
     def test_bulgaria(self):
         # Straight line distances to Pernik
         # source http://distance.bg360.net/
-        pernik_dist = { "Sofia": 25.4, "Pernik": 0, "Kustendil": 45.3, "Dupnica": 38, "Blagoevgrad": 65, 
-            "Sandanski": 117, "Kulata": 138, "Botevgrad": 70, "Vraca": 80, "Montana": 90, "Belogradchik": 117, 
-            "Lom": 136, "Vidin": 155, "Lovech": 149, "Pleven": 156, "Tarnovo": 217, "Biala": 239, "Ruse": 274,
-            "Razgrad": 303, "Shumen": 326, "Dobrich": 403, "Silistra": 381, "Varna": 402, "Burgas": 362.9, 
-            "Iambol": 284, "Plovdiv": 149, "Karlovo": 144, "StaraZagora": 214, "Kazanlak": 192, "Gabrovo": 188, 
-            "Haskovo": 220, "Kardzhali": 221, "Smolian": 178, "Pazardzhik": 116, "Pirdop": 93, "Troian": 140, "Sliven": 269
+        pernik_dist = { 
+            "Sofia": 25.4, "Pernik": 0, "Kustendil": 45.3, "Dupnica": 38, 
+            "Blagoevgrad": 65, "Sandanski": 117, "Kulata": 138, "Botevgrad": 70, "Vraca": 80, 
+            "Montana": 90, "Belogradchik": 117, "Lom": 136, "Vidin": 155, "Lovech": 149, 
+            "Pleven": 156, "Tarnovo": 217, "Biala": 239, "Ruse": 274, "Razgrad": 303, 
+            "Shumen": 326, "Dobrich": 403, "Silistra": 381, "Varna": 402, "Burgas": 362.9, 
+            "Iambol": 284, "Plovdiv": 149, "Karlovo": 144, "StaraZagora": 214, "Kazanlak": 192, 
+            "Gabrovo": 188, "Haskovo": 220, "Kardzhali": 221, "Smolian": 178, "Pazardzhik": 116, 
+            "Pirdop": 93, "Troian": 140, "Sliven": 269
         }
         
         heuristic = lambda town: pernik_dist[town]
@@ -211,9 +226,9 @@ class AStarNPuzzleTests(SearchTests):
         self.assertEqual(len(solution), expected_solution_length)
 
     def test_npuzzle(self): 
-
-        #self.assert_npuzzle("6 4 8 0 1 2 10 11 5 13 3 14 15 7 12 9", " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0", 35)
-        #self.assert_npuzzle("8 3 0 4 2 6 1 5 7", "0 1 2 3 4 5 6 7 8", 27)
+        if config.HARD_TESTS:
+            self.assert_npuzzle("6 4 8 0 1 2 10 11 5 13 3 14 15 7 12 9", " 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 0", 35)
+            self.assert_npuzzle("8 3 0 4 2 6 1 5 7", "0 1 2 3 4 5 6 7 8", 27)
         self.assert_npuzzle("4 2 5 3 6 8 1 7 0", "0 1 2 3 4 5 6 7 8", 15)
 
 

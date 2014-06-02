@@ -12,8 +12,12 @@ from tests.proplogic import DefiniteClausesTests
 from tests.proplogic import CnfConverterTests
 from tests.proplogic import ResolutionProverTests
 
+from tests import config
+
 import unittest
 
 
 if __name__ == "__main__":
+    config.HARD_TESTS = False
+
     unittest.main()

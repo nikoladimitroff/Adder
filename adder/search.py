@@ -1,10 +1,11 @@
-# Depends on: problem.py
-from adder.problem import FAILURE
-from adder.problem import SOLUTION_UNKNOWN
 from itertools import count
 from collections import defaultdict
 import random
 import math
+from time import sleep
+
+from adder.problem import FAILURE
+from adder.problem import SOLUTION_UNKNOWN
 
 # <uninformed searches>
 
@@ -65,6 +66,8 @@ def iterative_deepening_dfs(problem, max_depth=float("inf")):
         result = depth_limited_search(problem, depth)
         if result is not SOLUTION_UNKNOWN:
             return result
+        if depth >= max_depth:
+            return SOLUTION_UNKNOWN
             
 # </uninformed searches>
 
@@ -72,7 +75,7 @@ def __astar_key_comparer(pair):
     return pair[0]
 
 
-def astar(problem, heuristic):
+def astar(problem, heuristic, print_state=lambda state: None):
     visited = set()
     node = problem.initial
     frontier = [node]
@@ -82,10 +85,12 @@ def astar(problem, heuristic):
     nodes_generated = 0
     while len(frontier) != 0:
         # Expand the node with lowest f_value
-        frontier_f_scores = [(f_values[expanded], index) for index, expanded in enumerate(frontier)]
+        frontier_f_scores = [(f_values[expanded], index) 
+                             for index, expanded in enumerate(frontier)]
         node_index = min(frontier_f_scores, key=__astar_key_comparer)[1]
  
         node = frontier.pop(node_index)     
+        print_state(node.state)
         visited.add(node)
         
         if problem.goal_test(node.state):
@@ -122,10 +127,13 @@ def hill_climbing(problem, heuristic, max_sideways_walk, local_minima_acceptable
     current_cost = float("inf")
     sideway_moves = 0
     while True:
+        if problem.goal_test(node.state):
+            return problem.construct_solution(node)
+
         heuristic_transform = lambda action: heuristic(problem.result(node.state, action))
         best_action = min(problem.actions_iter(node.state), key=heuristic_transform)
         cost = heuristic_transform(best_action)
-
+        
         if cost > current_cost:
             return problem.construct_solution(node) if local_minima_acceptable else FAILURE
         elif cost == current_cost:
@@ -137,8 +145,6 @@ def hill_climbing(problem, heuristic, max_sideways_walk, local_minima_acceptable
 
         node = problem.child_node(node, best_action)
         current_cost = cost
-        if problem.goal_test(node.state):
-            return problem.construct_solution(node)
 
 
 def random_restart_hc(problem_generator, heuristic, max_sideways_walk, max_iterations=1<<31):
@@ -153,26 +159,19 @@ def random_restart_hc(problem_generator, heuristic, max_sideways_walk, max_itera
 def simulated_annealing(problem, heuristic, 
                         local_minima_acceptable=False, 
                         temperature_func=lambda t: math.log(1 / t), 
-                        min_temperature=0.01):
+                        min_temperature=0.01,
+                        print_state=lambda state: None):
     """
     Solves the problem using Simulated Annealing. The method is highly dependent on the right parameters. For best results, obey the following:
     - the temperature_func must be monothonic and slowly decreasing. The time argument will be in the range [0, 1]
     """
-    #landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
-    #width = len(landscape)
-    #height = 8
-    #def print_landscape(state):
-    #    print(time, temperature_func(time))
-    #    for row_index in range(height):
-    #        row = [' ' if landscape[i] > row_index else ('|' if landscape[i] < row_index else ('Y' if i == state else 'T')) for i in range(width)]
-    #        print("".join(row))
 
 
     node = problem.initial
     current_cost = heuristic(node.state)
     max_time = 1000
     for time in range(1, max_time):
-        #print_landscape(node.state)
+        print_state(node.state)
         if problem.goal_test(node.state):
             return problem.construct_solution(node)
 
@@ -202,7 +201,7 @@ def genetic(state_generator,
             population_size, 
             max_generations=1<<31):
     """
-    Find a state whose fitness value is at least best_fitness_value.
+    Finds a state whose fitness value is at least best_fitness_value.
     Alternatively, finds the best state after max_generations.
 
     Args: 
@@ -221,11 +220,11 @@ def genetic(state_generator,
         population[individual] = fitness_func(individual)
         fitness_sum += population[individual]
     
-    for i in range(max_generations):
+    for _ in range(max_generations):
         for individual in population:
             population[individual] = population[individual] / fitness_sum
 
-        generation = {}
+        generation_fitness = {}
         generation_fitness_sum = 0
         for i in range(population_size):
             father = _weighted_choice(population)
@@ -234,13 +233,13 @@ def genetic(state_generator,
             for child in _reproduce(father, mother, reproducer):
                 if random.random() <= _MUTATION_CHANCE:
                     child = mutator(child)
-                if child in generation: continue
-                generation[child] = fitness_func(child)
-                if generation[child] >= best_fitness_value:
+                if child in generation_fitness: continue
+                generation_fitness[child] = fitness_func(child)
+                if generation_fitness[child] >= best_fitness_value:
                     return child
-                generation_fitness_sum += generation[child]
+                generation_fitness_sum += generation_fitness[child]
 
-        population = generation
+        population = generation_fitness
         fitness_sum = generation_fitness_sum
 
     return max(population, key=lambda key_value_pair: key_value_pair[1])[0]
@@ -260,4 +259,3 @@ def _reproduce(father, mother, reproducer):
     first_child = reproducer(father, mother, crossover_point) 
     second_child = reproducer(father, mother, len(father) - crossover_point)
     return (first_child, second_child)
-
