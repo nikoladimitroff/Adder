@@ -1,7 +1,7 @@
-# Depends on: adder
-from adder import graphs
 import os
 import unittest
+
+from adder import graphs
 
 import tests.config as config
 
@@ -37,6 +37,7 @@ class GraphFactoryTests(unittest.TestCase):
         self.assertCountEqual(g.children_iter("B"), {"A"})
         self.assertCountEqual(g.children_iter("C"), {"A"})
         
+class GraphLoadingTests(unittest.TestCase):
     def assert_graph_loaded(self, graph, nodes, edges, is_directed=False):
         self.assertIsInstance(graph, graphs.Graph if not is_directed else graphs.Digraph)
         self.assertCountEqual(graph.get_nodes(), nodes)

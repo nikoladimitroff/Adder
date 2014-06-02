@@ -122,7 +122,6 @@ class CnfConverterTests(unittest.TestCase):
 
 
 class ResolutionProverTests(unittest.TestCase):
-
     def test_prover_truth(self):
         # Wumpus sample, aima p.256 
         #    (B11 <=> (P12 | P21)) & !B11
@@ -141,3 +140,29 @@ class ResolutionProverTests(unittest.TestCase):
         
         result = kb.ask(query)
         self.assertFalse(result)
+
+        
+        formulae = "A | B"
+        kb = proplogic.PlKnowledgeBase(formulae)
+        query = "A"
+        
+        result = kb.ask(query)
+        self.assertFalse(result)
+
+    def test_wumpus_sample_kb(self):
+        kb = proplogic.PlKnowledgeBase("""!Breeze_0
+            WumpusAlive_0
+            !Stench_0
+            L11_0
+            !P11
+            !W11
+            B11 <=> (P12 | P21)
+            S11 <=> (W21 | W12)
+            L11_0 => (Stench_0 <=> S11)
+            L11_0 => (Breeze_0 <=> B11)
+            OK12_0 <=> !P12 & (!W12 | !WumpusAlive_0)
+        """, max_clause_len=3)  
+
+        self.assertTrue(kb.ask("OK12_0"))
+        self.assertFalse(kb.ask("!OK12_0"))
+

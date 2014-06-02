@@ -4,10 +4,9 @@ class InvalidArgumentError(Exception):
 def memoize(func):
     arg_table = {}
     def memoized(*args):
-        arguments = tuple(str(arg) for arg in args)
-        if arguments not in arg_table:
-            arg_table[arguments] = func(*args)
+        if args not in arg_table:
+            arg_table[args] = func(*args)
 
-        return arg_table[arguments]
+        return arg_table[args]
 
     return memoized

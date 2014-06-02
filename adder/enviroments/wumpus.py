@@ -10,11 +10,11 @@ from adder.search import astar
 class _Axiomatizer:
     FACTS = [ 
         "!P11",
-        "!W11",
+        #"!W11",
         "L11_0",
-        "WumpusAlive_0",
-        "FacingEast_0",
-        "HaveArrow_0",
+        #"WumpusAlive_0",
+        #"FacingEast_0",
+        #"HaveArrow_0",
     ]
 
     def __init__(self, size):
@@ -46,7 +46,7 @@ class _Axiomatizer:
                                     
         stench_axiom = "S{0}{1} <=> ({2})".format(row, col, wumpus_disjuncts)
         
-        return breeze_axiom, stench_axiom
+        return (breeze_axiom, )#stench_axiom
 
     def __wumpus_axioms(self):
         wumpus_existence = " | ".join(["W{0}{1}".format(row, col) for row, col in
@@ -69,22 +69,22 @@ class _Axiomatizer:
         row, col = position
         breeze = "L{0}{1}_{2} => (Breeze_{2} <=> B{0}{1})".format(row, col, time)
         stench = "L{0}{1}_{2} => (Stench_{2} <=> S{0}{1})".format(row, col, time)
-        percept_axioms += breeze, stench
+        percept_axioms += (breeze,)# stench
         return percept_axioms
         
     def __successor_state_axioms(self, time, position):
         axioms = []
         arrow = "HaveArrow_{0} <=> (HaveArrow_{1} & !Shoot_{1})".format(time + 1, time)
-        axioms.append(arrow)
+        #axioms.append(arrow)
             
         wumpus = "WumpusAlive_{0} <=> (WumpusAlive_{1} & !Scream_{1})".format(time + 1, time)
-        axioms.append(wumpus)
+        #axioms.append(wumpus)
         
         east = "FacingEast_{0} <=> (FacingSouth_{1} & Turn_{1})".format(time + 1, time)
         north = "FacingNorth_{0} <=> (FacingEast_{1} & Turn_{1})".format(time + 1, time)
         west = "FacingWest_{0} <=> (FacingNorth_{1} & Turn_{1})".format(time + 1, time)
         south = "FacingSouth_{0} <=> (FacingWest_{1} & Turn_{1})".format(time + 1, time)
-        axioms += east, north, west, south
+        #axioms += east, north, west, south
         
         row, col = position    
         location_pattern = " | (L{0}{1}_{2} & ({3} & Forward_{2}))"
@@ -100,17 +100,19 @@ class _Axiomatizer:
             location += location_pattern.format(row, col - 1, time, "West_{0}".format(time))
         if col < self.size:
             location += location_pattern.format(row, col + 1, time, "East_{0}".format(time))
-        axioms.append(location)
+        #axioms.append(location)
                 
+        axioms.append("L{0}{1}_{2}".format(position[0], position[1], time))
+        
         return axioms
 
     def __helper_axioms(self, time):
         if time > 0:
-            ok_axioms = ["OK{0}{1}_{2} <=> OK{0}{1}_{3} | (!P{0}{1} & (!W{0}{1} | WumpusAlive_{2}))" \
+            ok_axioms = ["OK{0}{1}_{2} <=> OK{0}{1}_{3} | (!P{0}{1})"# & (!W{0}{1} | WumpusAlive_{2}))" \
                          .format(row, col, time, time - 1)
                          for row, col in self.wumpus_world()]
         else:
-            ok_axioms = ["OK{0}{1}_{2} <=> !P{0}{1} & (!W{0}{1} | WumpusAlive_{2})" \
+            ok_axioms = ["OK{0}{1}_{2} <=> !P{0}{1}"# & (!W{0}{1} | WumpusAlive_{2})" \
                          .format(row, col, time, time - 1)
                          for row, col in self.wumpus_world()]
 
@@ -122,7 +124,7 @@ class _Axiomatizer:
         for i, j in self.wumpus_world():
             axioms += self.__breeze_stench(i, j)
             
-        axioms += self.__wumpus_axioms()
+        #axioms += self.__wumpus_axioms()
 
         return axioms
 
@@ -165,8 +167,8 @@ class World:
                     self.wumpus = (i, j)
                     break
 
-        if not self.wumpus:
-            raise RuntimeError("There's is no wumpus in the world")
+        #if not self.wumpus:
+        #    raise RuntimeError("There's is no wumpus in the world")
 
 
         self.hero = namedtuple("Hero", ["position", "orientation", "has_arrow"])
@@ -215,6 +217,11 @@ class World:
                 [Cell.Empty, Cell.Empty, Cell.Empty],
                 [Cell.Gold, Cell.Empty, Cell.Empty],
                 [Cell.Empty, Cell.Empty, Cell.Wumpus]
+            ]
+        elif self.size == 2:
+            grid = [
+                [Cell.Empty, Cell.Empty],
+                [Cell.Gold, Cell.Empty]
             ]
 
         return grid
@@ -317,7 +324,7 @@ class PlanningProblem(Problem):
 class HybridAgent:
     def __init__(self, size):
         self.axiomatizer = _Axiomatizer(size)
-        self.kb = PlKnowledgeBase("\n".join(self.axiomatizer.generate_atemportal()))
+        self.kb = PlKnowledgeBase("\n".join(self.axiomatizer.generate_atemportal()), max_clause_len=3)
         self.time = -1
         self.plan = []
         self.position = (1, 1)
@@ -343,18 +350,7 @@ class HybridAgent:
         self.kb.tell(percept_sentence)
         self.kb.tell(*self.axiomatizer.generate_temporal(self.time, self.position))
 
-        test_kb = PlKnowledgeBase("""Breeze_0
-                WumpusAlive_0
-                Stench_0
-                L11_0
-                !P11
-                !W11
-                S11 <=> (W21 | W12)
-                B11 <=> (P21 | P12)
-                L11_0 => (B11 <=> Breeze_0)
-                L11_0 => (Stench_0 <=> S11)
-                OK12_0 <=> !P12 & (!W12 | WumpusAlive_0)
-            """)         
+       
         #
                 #
                 #
@@ -364,7 +360,7 @@ class HybridAgent:
         #        print(x)
         
 
-        return self.kb.ask("OK33_0")
+        #return self.kb.ask("OK33_0")
 
         safe_cells = [(row, col) for row, col in self.axiomatizer.wumpus_world()
                       if self.kb.ask("OK{0}{1}_{2}".format(row, col, self.time))]
@@ -372,11 +368,17 @@ class HybridAgent:
         if self.kb.ask("Glitter_{0}".format(self.time)):
             self.plan = [Actions.Grab] + self.plan_route_to((1, 1), safe_cells) \
                          + [Actions.Climb]
+        
+        if len(self.plan) == 0:
+            #unvisited = {(row, col) for row, col in self.axiomatizer.wumpus_world()
+            #             for time in range(self.time + 1)
+            #             if self.kb.ask("!L{0}{1}_{2}".format(row, col, time))}
 
-        if len(plan) == 0:
-            unvisited = {(row, col) for row, col in self.axiomatizer.wumpus_world()
-                         for time in range(self.time)
-                         if self.kb.ask("L{0}{1}_{2}".format(row, col, time))}
+            for row, col in self.axiomatizer.wumpus_world():
+                for time in range(self.time + 1):
+                    symbol = "!L{0}{1}_{2}".format(row, col, time)
+                    print(symbol, self.kb.ask(symbol))
+
             unvisited_and_safe = unvisited.intersection(safe_cells)
             target = univisited_and_safe.pop()
             self.plan = self.plan_route_to(target, safe_cells)

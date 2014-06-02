@@ -80,6 +80,7 @@ class SearchTests(unittest.TestCase):
         assert_disconnected("Varna", "Sofia", problem.FAILURE)
         assert_disconnected("Burgas", "Kustendil", problem.FAILURE)
             
+
 class BfsTests(SearchTests):
     def test_bulgaria_disconnected(self):   
         self.assert_bulgaria_disconnected(search.bfs)
@@ -125,6 +126,7 @@ class BfsTests(SearchTests):
         assert_bfs_nondeterministic("RimnicuVilcea", "Lugoj", solutions_rv_lugoj)
         assert_bfs_nondeterministic("Oradea", "Lugoj", solutions_oradea_lugoj)
         
+
 class DlsTests(SearchTests):
     def test_bulgaria_disconnected(self):   
         search_algo = lambda problem: search.depth_limited_search(problem, 5)
