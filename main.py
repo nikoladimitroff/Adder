@@ -19,48 +19,48 @@ def main():
     #print(definite_kb.ask("Kiro_Kara_Golf"))
 
     ## PL Knowledge Base
-    #pl_kb = proplogic.PlKnowledgeBase("""
-    #    Ucha_FMI <=> (Matematik | Programist)
-    #    Matematik <=> (Znam_DIS & !Znam_Asembler)
-    #    Programist <=> (Znam_Python & Znam_C)
-    #""")
+    pl_kb = proplogic.PlKnowledgeBase("""
+        Ucha_FMI <=> (Matematik | Programist)
+        Matematik <=> (Znam_DIS & !Znam_Asembler)
+        Programist <=> (Znam_Python & Znam_C)
+    """)
 
-    #pl_kb.tell("Znam_Python")
-    #pl_kb.tell("Znam_C")
+    pl_kb.tell("Znam_Python")
+    pl_kb.tell("Znam_C")
 
-    #print(pl_kb.ask("Ucha_FMI"))
+    print(pl_kb.ask("!Ucha_FMI"))
     
     ## Simulated annealing
-    height = 8
-    landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
-    width = len(landscape)
-    state = 0
-    def actions(state):
-        actions = []
-        if state > 0: actions.append(-1)
-        if state < len(landscape) - 1: actions.append(1)
-        return actions
+    # height = 8
+    # landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
+    # width = len(landscape)
+    # state = 0
+    # def actions(state):
+        # actions = []
+        # if state > 0: actions.append(-1)
+        # if state < len(landscape) - 1: actions.append(1)
+        # return actions
 
     
-    def print_landscape(state):
-        for row_index in range(height):
-            row = [' ' if landscape[i] > row_index else 
-                                                    ('|' if landscape[i] < row_index else ('Y' if i == state else 'T')) 
-                   for i in range(width)]
-            print("".join(row))
+    # def print_landscape(state):
+        # for row_index in range(height):
+            # row = [' ' if landscape[i] > row_index else 
+                                                    # ('|' if landscape[i] < row_index else ('Y' if i == state else 'T')) 
+                   # for i in range(width)]
+            # print("".join(row))
 
-        sleep(1)
+        # sleep(1)
 
-    result = lambda state, action: state + action
-    step_cost = lambda state, action: 1
+    # result = lambda state, action: state + action
+    # step_cost = lambda state, action: 1
 
-    heuristic = lambda state: (height - landscape[state] - 1) / (height - 1)
-    goal_state = lambda state: heuristic(state) == 0
+    # heuristic = lambda state: (height - landscape[state] - 1) / (height - 1)
+    # goal_state = lambda state: heuristic(state) == 0
 
-    factory = problem.ProblemFactory()
-    pr = factory.from_functions(state, actions, step_cost, result, goal_state)
+    # factory = problem.ProblemFactory()
+    # pr = factory.from_functions(state, actions, step_cost, result, goal_state)
 
-    solution = search.simulated_annealing(pr, heuristic, local_minima_acceptable=True, print_state=print_landscape)
+    # solution = search.simulated_annealing(pr, heuristic, local_minima_acceptable=True, print_state=print_landscape)
 
     # NPuzzle
     

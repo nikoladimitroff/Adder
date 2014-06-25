@@ -2,88 +2,8 @@ import re
 import itertools
 
 from adder import utils
-
-
-class LogicOperator:
-    Conjuction = "&"
-    Disjunction = "|"
-    Negation = "!"
-    Implication = "=>"
-    Equivalence = "<=>"
-
-
-class _Braces:
-    Left = "("
-    Right = ")"
-    Placeholder = "*"
-    
-    @staticmethod
-    def remove_surrounding_parenthesis(sentence):    
-        if sentence[0] == _Braces.Left and \
-           sentence[-1] == _Braces.Right:
-            braces = 1
-            for symbol in sentence[1:-1]:
-                if symbol == _Braces.Left: braces += 1
-                if symbol == _Braces.Right: braces -= 1
-                if braces == 0: return sentence
-            return sentence[1:-1]
-        return sentence
-    
-    @staticmethod
-    def flatten_braces(text):
-        tlb = False
-        braces = 0
-        result = ""
-        for symbol in text:
-            if symbol == _Braces.Left:
-                if braces == 0:
-                    tlb = True
-                    result += _Braces.Left
-                braces += 1
-            elif symbol == _Braces.Right:
-                braces -= 1
-                if braces == 0:
-                    tlb = False
-                    result += _Braces.Right
-            else:
-                result += symbol
-            
-        return result
-
-    @staticmethod
-    def brace_replace(text):
-        braces = 0
-        tlb = False
-        result = ""
-        replacement_table = []
-        replacement_index = -1
-        for symbol in text:
-            if tlb and (braces != 1 or symbol != _Braces.Right):
-                result += _Braces.Placeholder
-                replacement_table[replacement_index] += symbol
-            else:
-                result += symbol
-            
-            if symbol == _Braces.Left:
-                if braces == 0:
-                    tlb = True
-                    replacement_table.append(_Braces.Left)
-                    replacement_index += 1
-                braces += 1
-            elif symbol == _Braces.Right:
-                braces -= 1
-                if braces == 0:
-                    tlb = False
-                    replacement_table[replacement_index] += _Braces.Right
-
-        return (re.sub("\*+", _Braces.Placeholder, result), replacement_table)
-    
-    @staticmethod
-    def restore_braces(text, replacement_table):
-        for entry in replacement_table:
-            text = text.replace("({0})".format(_Braces.Placeholder), entry, 1)
-    
-        return text
+from adder.logic import Braces
+from adder.logic import LogicOperator
 
 
 class DefiniteClause:
@@ -264,12 +184,12 @@ def parse_cnf_knowledge_base(text):
 
 
 def parse_cnf_sentence(sentence):
-    cnf = _Braces.flatten_braces(__convert_to_cnf(sentence))
+    cnf = Braces.flatten_braces(__convert_to_cnf(sentence))
    
     clauses = set()
     for disjunct_text in cnf.split(LogicOperator.Conjuction):
-        disjunct_text = disjunct_text.replace(_Braces.Left, "") \
-                            .replace(_Braces.Right, "")
+        disjunct_text = disjunct_text.replace(Braces.Left, "") \
+                            .replace(Braces.Right, "")
         if len(disjunct_text) == 0:
             continue
 
@@ -339,7 +259,7 @@ def __conjuction_cnf(operands):
 
 
 def __negation_cnf(operands):
-    tail = _Braces.remove_surrounding_parenthesis(operands[0])
+    tail = Braces.remove_surrounding_parenthesis(operands[0])
     if __is_var(tail):
         return LogicOperator.Negation + tail
 
@@ -392,8 +312,8 @@ def __is_var(sentence):
 
 
 def parse_sentence(sentence):
-    sentence = _Braces.remove_surrounding_parenthesis(sentence.strip())
-    brace_replaced = _Braces.brace_replace(sentence)
+    sentence = Braces.remove_surrounding_parenthesis(sentence.strip())
+    brace_replaced = Braces.brace_replace(sentence)
     operator = __get_operator(brace_replaced[0])
     operands = __get_operands(brace_replaced, operator)
 
@@ -418,7 +338,7 @@ def __get_operands(brace_replaced_sentence, operator):
     text, replacements = brace_replaced_sentence
 
     if operator == LogicOperator.Negation:
-        sentence = _Braces.restore_braces(text, replacements)
+        sentence = Braces.restore_braces(text, replacements)
         if sentence[0] == operator:
             return (sentence[1:], )
         return False
@@ -428,7 +348,7 @@ def __get_operands(brace_replaced_sentence, operator):
     lhs, rhs = text.split(" {0} ".format(operator), maxsplit=1)
     separator = "!SEPARATOR!"
     separated = "{0} {1} {2}".format(lhs, separator, rhs)
-    lhs, rhs = _Braces.restore_braces(separated, replacements).split(separator)
+    lhs, rhs = Braces.restore_braces(separated, replacements).split(separator)
     return (lhs.strip(), rhs.strip())
 
 
