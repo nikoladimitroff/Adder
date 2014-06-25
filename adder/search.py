@@ -75,7 +75,7 @@ def __astar_key_comparer(pair):
     return pair[0]
 
 
-def astar(problem, heuristic, print_state=lambda state: None):
+def astar(problem, heuristic):
     visited = set()
     node = problem.initial
     frontier = [node]
@@ -89,8 +89,7 @@ def astar(problem, heuristic, print_state=lambda state: None):
                              for index, expanded in enumerate(frontier)]
         node_index = min(frontier_f_scores, key=__astar_key_comparer)[1]
  
-        node = frontier.pop(node_index)     
-        print_state(node.state)
+        node = frontier.pop(node_index)
         visited.add(node)
         
         if problem.goal_test(node.state):

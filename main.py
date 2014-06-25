@@ -4,7 +4,10 @@ from adder import problem
 
 from time import sleep
 
+import demos.npuzzle
+
 def main():
+    pass
     # Definite Knowledge Base
     #definite_kb = proplogic.DefiniteKnowledgeBase("""
     #    Vreme_Za_Piton & Ne_E_Praznik & Stefan => Stefan_V_Zalata
@@ -19,16 +22,16 @@ def main():
     #print(definite_kb.ask("Kiro_Kara_Golf"))
 
     ## PL Knowledge Base
-    pl_kb = proplogic.PlKnowledgeBase("""
-        Ucha_FMI <=> (Matematik | Programist)
-        Matematik <=> (Znam_DIS & !Znam_Asembler)
-        Programist <=> (Znam_Python & Znam_C)
-    """)
+    #pl_kb = proplogic.PlKnowledgeBase("""
+    #    Ucha_FMI <=> (Matematik | Programist)
+    #    Matematik <=> (Znam_DIS & !Znam_Asembler)
+    #    Programist <=> (Znam_Python & Znam_C)
+    #""")
 
-    pl_kb.tell("Znam_Python")
-    pl_kb.tell("Znam_C")
+    #pl_kb.tell("Znam_Python")
+    #pl_kb.tell("Znam_C")
 
-    print(pl_kb.ask("!Ucha_FMI"))
+    #print(pl_kb.ask("!Ucha_FMI"))
     
     ## Simulated annealing
     # height = 8
@@ -79,6 +82,8 @@ def main():
     #    sleep(1)
 
     #solution = search.astar(problem_instance, heuristic, print_state=print_state)
+
+
 
 
 if __name__ == "__main__":

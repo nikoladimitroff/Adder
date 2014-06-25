@@ -11,6 +11,10 @@ __pycache__/
 *.pyperf
 *.suo
 
+# Coverage generated
+*,cover
+
+
 # Distribution / packaging
 .Python
 env/

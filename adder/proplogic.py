@@ -124,8 +124,8 @@ class PlKnowledgeBase:
 
     def ask(self, query):
         return resolution_prover(self.raw_kb, query, 
-                                 max_clause_len=self.max_clause_len,
-                                 information_rich=self.information_rich)
+                                 self.max_clause_len,
+                                 self.information_rich)
 
     def tell(self, *args):
         for sentence in args:
@@ -152,21 +152,21 @@ def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
     empty_set = frozenset()
 
     while True:
-        result = __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len, empty_set)
+        result = __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len)
         if result != None:
             return result
         
         if information_rich:
-            result = __resolution_loop(new_inferrences2, already_resolved2, clauses2, max_clause_len, empty_set)
+            result = __resolution_loop(new_inferrences2, already_resolved2, clauses2, max_clause_len)
             if result != None:
                 return not result
 
-def __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len, empty_set):
+def __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len, empty_set=frozenset()):
     new_inferrences.clear()
     pairs = ((clauses[i], clauses[j]) 
-                for i in range(len(clauses))
-                for j in range(i + 1, len(clauses))
-                if (clauses[i], clauses[j]) not in already_resolved)
+             for i in range(len(clauses))
+             for j in range(i + 1, len(clauses))
+             if (clauses[i], clauses[j]) not in already_resolved)
     
 
     for c1, c2 in pairs:

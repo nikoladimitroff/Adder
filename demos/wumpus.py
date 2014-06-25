@@ -10,10 +10,10 @@ from adder.search import astar
 class _Axiomatizer:
     FACTS = [ 
         "!P11",
-        #"!W11",
         "L11_0",
+        "FacingEast_0",
+        #"!W11",
         #"WumpusAlive_0",
-        #"FacingEast_0",
         #"HaveArrow_0",
     ]
 
@@ -80,11 +80,11 @@ class _Axiomatizer:
         wumpus = "WumpusAlive_{0} <=> (WumpusAlive_{1} & !Scream_{1})".format(time + 1, time)
         #axioms.append(wumpus)
         
-        east = "FacingEast_{0} <=> (FacingSouth_{1} & Turn_{1})".format(time + 1, time)
-        north = "FacingNorth_{0} <=> (FacingEast_{1} & Turn_{1})".format(time + 1, time)
-        west = "FacingWest_{0} <=> (FacingNorth_{1} & Turn_{1})".format(time + 1, time)
-        south = "FacingSouth_{0} <=> (FacingWest_{1} & Turn_{1})".format(time + 1, time)
-        #axioms += east, north, west, south
+        east = "FacingEast_{0} <=> ((FacingSouth_{1} & Turn_{1}) | (FacingEast_{1} & !Turn_{1}))".format(time + 1, time)
+        north = "FacingNorth_{0} <=> ((FacingEast_{1} & Turn_{1}) | (FacingNorth_{1} & !Turn_{1}))".format(time + 1, time)
+        west = "FacingWest_{0} <=> ((FacingNorth_{1} & Turn_{1}) | (FacingWest_{1} & !Turn_{1}))".format(time + 1, time)
+        south = "FacingSouth_{0} <=> ((FacingWest_{1} & Turn_{1}) | (FacingSouth_{1} & !Turn_{1}))".format(time + 1, time)
+        axioms += east, north, west, south
         
         row, col = position    
         location_pattern = " | (L{0}{1}_{2} & ({3} & Forward_{2}))"
@@ -93,14 +93,14 @@ class _Axiomatizer:
                     .format(row, col, time + 1, time)
                 
         if row > 1:
-            location += location_pattern.format(row - 1, col, time, "South_{0}".format(time))
+            location += location_pattern.format(row - 1, col, time, "FacingSouth_{0}".format(time))
         if row < self.size:
-            location += location_pattern.format(row + 1, col, time, "North_{0}".format(time))
+            location += location_pattern.format(row + 1, col, time, "FacingNorth_{0}".format(time))
         if col > 1:
-            location += location_pattern.format(row, col - 1, time, "West_{0}".format(time))
+            location += location_pattern.format(row, col - 1, time, "FacingWest_{0}".format(time))
         if col < self.size:
-            location += location_pattern.format(row, col + 1, time, "East_{0}".format(time))
-        #axioms.append(location)
+            location += location_pattern.format(row, col + 1, time, "FacingEast_{0}".format(time))
+        axioms.append(location)
                 
         axioms.append("L{0}{1}_{2}".format(position[0], position[1], time))
         
@@ -128,7 +128,6 @@ class _Axiomatizer:
 
 
         ok_axioms.append(at_least_1_location)
-        #ok_axioms.append(at_most_1_location)
         ok_axioms += at_most_1_location
         return ok_axioms
 
@@ -245,15 +244,16 @@ class World:
                position[1] < 1 or \
                position[1] >= self.size
 
+    def __sum_tuples(a, b, diff=False):
+        return tuple(x + diff * (-1) * y for x, y in zip(a,b))
 
     def __try_move_forward(self):      
         hero = self.hero
         movement = World.get_movement_vector(hero.orientation)
-        hero.position[0] += movement[0]
-        hero.position[1] += movement[1]
+        hero.position = World.__sum_tuples(hero.position, movement)
+
         if self.__out_of_bounds(hero.position):
-            hero.position[0] -= movement[0]
-            hero.position[1] -= movement[1]
+            hero.position = World.__sum_tuples(hero.position, movement, diff=True)
             return False
 
         return True
@@ -268,8 +268,7 @@ class World:
         movement = World.get_movement_vector(hero.orientation)
         arrow_position = tuple(hero.position)
         while not self.__out_of_bounds(arrow_position):
-            arrow_position[0] += movement[0]
-            arrow_position[1] += movement[1]
+            arrow_position = World.__sum_tuples(arrow_position, movement)
             if arrow_position == self.wumpus:
                 self.wumpus_alive = False
                 return True
@@ -331,7 +330,7 @@ class PlanningProblem(Problem):
 
     def heuristic(self, state):
         # manhattan
-        return abs(state[0] - self.goal[0]) + abs(state[1] - self.goal[1])
+        return abs(state[0][0] - self.goal[0]) + abs(state[0][1] - self.goal[1])
 
 
 class HybridAgent:
@@ -396,8 +395,9 @@ class HybridAgent:
             unvisited_and_safe = unvisited.intersection(safe_cells)
             target = unvisited_and_safe.pop()
             self.plan = self.plan_route_to(target, safe_cells)
+            self.plan.pop(0)
 
-        action = plan.pop()
+        next_state, action = self.plan.pop(0)
         self.kb.tell(self.__make_action_sentence(action))
 
         return action
