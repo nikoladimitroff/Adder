@@ -148,7 +148,7 @@ class ResolutionProverTests(unittest.TestCase):
 
         
         formulae = "A | B"
-        kb = proplogic.PlKnowledgeBase(formulae)
+        kb = proplogic.PlKnowledgeBase(formulae, information_rich=False)
         query = "A"
         
         result = kb.ask(query)

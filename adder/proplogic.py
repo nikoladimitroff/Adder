@@ -117,12 +117,15 @@ def __check_implication(kb, true_symbols, checked, clause):
 
 
 class PlKnowledgeBase:
-    def __init__(self, text, max_clause_len=float("inf")):
+    def __init__(self, text, max_clause_len=float("inf"), information_rich=True):
         self.raw_kb = parse_cnf_knowledge_base(text)
         self.max_clause_len = max_clause_len
+        self.information_rich = information_rich
 
     def ask(self, query):
-        return resolution_prover(self.raw_kb, query, max_clause_len=self.max_clause_len)
+        return resolution_prover(self.raw_kb, query, 
+                                 max_clause_len=self.max_clause_len,
+                                 information_rich=self.information_rich)
 
     def tell(self, *args):
         for sentence in args:
@@ -135,33 +138,56 @@ class PlKnowledgeBase:
         return not (self == other)
 
 
-def resolution_prover(knowledge_base, query, max_clause_len=float("inf")):
+def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
     negated_query = "{0}({1})".format(LogicOperator.Negation, query)
     not_query_cnf = parse_cnf_sentence(negated_query)
     clauses = not_query_cnf + knowledge_base
-    start_size = len(clauses)
-    empty_set = frozenset()
     new_inferrences = set()
+    already_resolved = set()
+    
+    clauses2 = parse_cnf_sentence(query) + knowledge_base
+    new_inferrences2 = set()
+    already_resolved2 = set()
+
+    empty_set = frozenset()
+
     while True:
-        new_inferrences.clear()
-        pairs = [(clauses[i], clauses[j]) 
-                 for i in range(len(clauses))
-                 for j in range(i + 1, len(clauses))]
+        result = __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len, empty_set)
+        if result != None:
+            return result
+        
+        if information_rich:
+            result = __resolution_loop(new_inferrences2, already_resolved2, clauses2, max_clause_len, empty_set)
+            if result != None:
+                return not result
 
-        for c1, c2 in pairs:
-            resolvents = __resolve(c1, c2, max_clause_len)
-            if empty_set in resolvents:
-                return True
+def __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len, empty_set):
+    new_inferrences.clear()
+    pairs = ((clauses[i], clauses[j]) 
+                for i in range(len(clauses))
+                for j in range(i + 1, len(clauses))
+                if (clauses[i], clauses[j]) not in already_resolved)
+    
 
-            new_inferrences.update(resolvents)
-        if new_inferrences.issubset(clauses):
-            return False
+    for c1, c2 in pairs:
+        resolvents = __resolve(c1, c2, max_clause_len)
+        if empty_set in resolvents:
+            return True
 
-        clauses.extend(clause for clause in new_inferrences 
-                       if clause not in clauses)
+        new_inferrences.update(resolvents)
+        already_resolved.add((c1, c2))
+        
+    if new_inferrences.issubset(clauses):
+        return False
+        
+    clauses.extend(clause for clause in new_inferrences 
+                    if clause not in clauses)
+    
+
+    return None
 
 
-@utils.memoize
+#@utils.memoize
 def __resolve(first_clause, second_clause, max_len):
     resolvents = []
     __resolve_single_sided(first_clause, second_clause, resolvents)

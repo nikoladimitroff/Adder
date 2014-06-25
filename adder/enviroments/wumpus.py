@@ -116,7 +116,20 @@ class _Axiomatizer:
                          .format(row, col, time, time - 1)
                          for row, col in self.wumpus_world()]
 
+        at_least_1_location = " | ".join("L{0}{1}_{2}".format(row, col, time) for row, col in self.wumpus_world())
+        at_most_1_location = []
+        for row1, col1 in self.wumpus_world():
+            lhs = "L{0}{1}_{2}".format(row1, col1, time)
+            rhs = " & ".join("!L{0}{1}_{2}".format(row2, col2, time) 
+                             for row2, col2 in self.wumpus_world()
+                             if row2 != row1 or col2 != col1)
 
+            at_most_1_location.append("{0} <=> ({1})".format(lhs, rhs))
+
+
+        ok_axioms.append(at_least_1_location)
+        #ok_axioms.append(at_most_1_location)
+        ok_axioms += at_most_1_location
         return ok_axioms
 
     def generate_atemportal(self):
@@ -365,22 +378,23 @@ class HybridAgent:
         safe_cells = [(row, col) for row, col in self.axiomatizer.wumpus_world()
                       if self.kb.ask("OK{0}{1}_{2}".format(row, col, self.time))]
 
+        print(safe_cells)
         if self.kb.ask("Glitter_{0}".format(self.time)):
             self.plan = [Actions.Grab] + self.plan_route_to((1, 1), safe_cells) \
                          + [Actions.Climb]
         
         if len(self.plan) == 0:
-            #unvisited = {(row, col) for row, col in self.axiomatizer.wumpus_world()
-            #             for time in range(self.time + 1)
-            #             if self.kb.ask("!L{0}{1}_{2}".format(row, col, time))}
+            unvisited = {(row, col) for row, col in self.axiomatizer.wumpus_world()
+                         for time in range(self.time + 1)
+                         if self.kb.ask("!L{0}{1}_{2}".format(row, col, time))}
 
             for row, col in self.axiomatizer.wumpus_world():
                 for time in range(self.time + 1):
-                    symbol = "!L{0}{1}_{2}".format(row, col, time)
-                    print(symbol, self.kb.ask(symbol))
+                    symbol = "L{0}{1}_{2}".format(row, col, time)
+                    print(symbol, self.kb.ask(symbol), "!" + symbol, self.kb.ask("!" + symbol))
 
             unvisited_and_safe = unvisited.intersection(safe_cells)
-            target = univisited_and_safe.pop()
+            target = unvisited_and_safe.pop()
             self.plan = self.plan_route_to(target, safe_cells)
 
         action = plan.pop()

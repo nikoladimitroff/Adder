@@ -8,9 +8,9 @@
 #from tests.search import SimulatedAnnealingTests
 #from tests.search import GeneticTests
 #from tests.problems import NQueensTest
-#from tests.proplogic import DefiniteClausesTests
-#from tests.proplogic import CnfConverterTests
-#from tests.proplogic import ResolutionProverTests
+from tests.proplogic import DefiniteClausesTests
+from tests.proplogic import CnfConverterTests
+from tests.proplogic import ResolutionProverTests
 from tests.fologic import UnifyTests
 from tests.fologic import ChainingTests
 
