@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from adder import proplogic
+from adder import proplogic, utils
 
 import tests.config as config
 
@@ -45,11 +45,29 @@ class DefiniteClausesTests(unittest.TestCase):
         self.assertTrue(q)
         self.assertFalse(not_q)
 
+    def test_kb_ask(self):
+        q = self.kb.ask("Q")
+        not_q = self.kb.ask("!Q")
+        self.assertTrue(q)
+        self.assertFalse(not_q)
+
+    def test_kb_tell(self):
+        kb = proplogic.DefiniteKnowledgeBase()
+        kb.tell("A & B => C")
+        kb.tell("A")
+        self.assertFalse(kb.ask("C"))
+        self.assertTrue(kb.ask("A"))
+        kb.tell("B")
+        self.assertTrue(kb.ask("C"))
+
     def test_failure(self):
         result_bc = proplogic.backward_chaining(self.kb.raw_kb, "T")
         result_fc = proplogic.forward_chaining(self.kb.raw_kb, "T")
         self.assertFalse(result_bc)
         self.assertFalse(result_fc)
+
+    def test_invalid_clause(self):
+        self.assertRaises(utils.InvalidArgumentError, proplogic.DefiniteClause, ("A | B"))
 
 
 class CnfConverterTests(unittest.TestCase):
@@ -81,6 +99,13 @@ class CnfConverterTests(unittest.TestCase):
             self.assertCountEqual(result, result2)
             self.assertCountEqual(result, expected_cnf)
 
+        general_formulae = [first for first, second in formula_equivalences]
+        cnfs = [second for first, second in formula_equivalences]
+        from_general = proplogic.KnowledgeBase("\n".join(general_formulae))
+        from_cnfs = proplogic.KnowledgeBase("\n".join(cnfs))
+        self.assertEqual(from_general, from_cnfs)
+        self.assertFalse(from_general != from_cnfs)
+
     def test_is_operator(self):
         formula_equivalences = [
             ("(A <=> B) => ((A => B) & (B => A))", "=>"),
@@ -110,14 +135,18 @@ class CnfConverterTests(unittest.TestCase):
             msg = "{}/{}".format(formula, operator)
             self.assertNotEqual(result_operator, operator, msg=msg)
 
-        
+
+    def test_invalid_input(self):
+        self.assertRaises(utils.ParsingError, proplogic.parse_sentence, ("THIS IS NONSENSE!"))
+        self.assertRaises(utils.ParsingError, proplogic.parse_sentence, ("EVER MORE RANDOM WORDS"))
+
     def test_kb_parsing(self):
         formulae = [
             "(A => B | D)",
             "((A & B) => C)",
             "(C <=> !D)",
         ]
-        kb = proplogic.PlKnowledgeBase("\n".join(formulae))
+        kb = proplogic.KnowledgeBase("\n".join(formulae))
         expected = "(!A | B | D) & (!A | !B | C) & (!C | !D) & (C | D)"
         expected_cnf = proplogic.parse_sentence_to_cnf(expected)
         self.assertCountEqual(kb.raw_kb, expected_cnf)
@@ -131,7 +160,7 @@ class ResolutionProverTests(unittest.TestCase):
         # Wumpus sample, aima p.256 
         #    (B11 <=> (P12 | P21)) & !B11
         formulae = "(B11 <=> (P12 | P21)) & !B11"
-        kb = proplogic.PlKnowledgeBase(formulae)
+        kb = proplogic.KnowledgeBase(formulae)
         query = "!P12"
 
         result = kb.ask(query)
@@ -140,7 +169,7 @@ class ResolutionProverTests(unittest.TestCase):
     def test_prover_false(self):
         # Wumpus sample, aima p.256 
         formulae = "(B11 <=> (P12 | P21)) & !B11"
-        kb = proplogic.PlKnowledgeBase(formulae)
+        kb = proplogic.KnowledgeBase(formulae)
         query = "P12"
         
         result = kb.ask(query)
@@ -148,14 +177,24 @@ class ResolutionProverTests(unittest.TestCase):
 
         
         formulae = "A | B"
-        kb = proplogic.PlKnowledgeBase(formulae, information_rich=False)
+        kb = proplogic.KnowledgeBase(formulae, information_rich=False)
         query = "A"
         
         result = kb.ask(query)
         self.assertFalse(result)
 
+    def test_tell(self):
+        kb = proplogic.KnowledgeBase(information_rich=False)
+        kb.tell("(A & !B) <=> C")
+        kb.tell("A")
+        self.assertFalse(kb.ask("C"))
+        self.assertTrue(kb.ask("A"))
+        kb.tell("!B")
+        self.assertTrue(kb.ask("C"))
+        self.assertFalse(kb.ask("B"))
+
     def test_wumpus_sample_kb(self):
-        kb = proplogic.PlKnowledgeBase("""!Breeze_0
+        kb = proplogic.KnowledgeBase("""!Breeze_0
             WumpusAlive_0
             !Stench_0
             L11_0

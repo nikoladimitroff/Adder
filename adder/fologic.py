@@ -4,9 +4,6 @@ from adder import problem
 from adder.logic import *
 
 
-
-
-
 def unify(expression1, expression2):
     return __unify_implementation(expression1, expression2, {})
 
@@ -37,9 +34,6 @@ def __unify_variable(var, expression, theta):
     if var in theta:
         substitution = theta[var]
         return __unify_implementation(expression, substitution, theta)
-
-    if re.search(r"\b{0}\b".format(var), expression):
-        return problem.FAILURE
 
     theta[var] = expression
     return theta

@@ -31,7 +31,7 @@ def profileWumpus():
 
 def profileKB():
     
-    pl_kb = proplogic.PlKnowledgeBase("""
+    pl_kb = proplogic.KnowledgeBase("""
         Ucha_FMI <=> (Matematik | Programist)
         Matematik => (Znam_DIS & !Znam_Asembler)
         Programist <=> (Znam_Python & Znam_C)

@@ -27,7 +27,7 @@ class DefiniteClause:
             conclusions = [symbol for symbol in symbols 
                            if symbol[0] != LogicOperator.Negation]
         if len(conclusions) != 1:
-            raise utils.InvalidArgumentException("The clause is not definite i.e. it doesn't have EXACTLY one positive symbol")
+            raise utils.InvalidArgumentError("The clause is not definite i.e. it doesn't have EXACTLY one positive symbol")
 
         return (premises, conclusions[0])
 
@@ -47,9 +47,10 @@ class DefiniteClause:
 
 
 class DefiniteKnowledgeBase:
-    def __init__(self, text):
+    def __init__(self, text=""):
         self.raw_kb = [DefiniteClause(clause) 
-                       for clause in text.strip().split("\n")]
+                       for clause in text.strip().split("\n")
+                       if len(clause) != 0]
 
     def ask(self, query):
         return backward_chaining(self.raw_kb, query)
@@ -59,7 +60,7 @@ class DefiniteKnowledgeBase:
             self.raw_kb.append(DefiniteClause(sentence.strip()))
 
     def __eq__(self, other):
-        return self.raw_kb == other.raw_kb
+        return set(self.raw_kb) == set(other.raw_kb)
 
     def __neq__(self, other):
         return not (self == other)
@@ -118,8 +119,8 @@ def __and_step(kb, true_symbols, checked, implication):
     return all
 
 
-class PlKnowledgeBase:
-    def __init__(self, text, max_clause_len=float("inf"), information_rich=True):
+class KnowledgeBase:
+    def __init__(self, text="", max_clause_len=float("inf"), information_rich=True):
         self.raw_kb = parse_knowledge_base(text)
         self.max_clause_len = max_clause_len
         self.information_rich = information_rich
@@ -134,7 +135,7 @@ class PlKnowledgeBase:
             self.raw_kb += parse_sentence_to_cnf(sentence.strip())
 
     def __eq__(self, other):
-        return self.raw_kb == other.raw_kb
+        return set(self.raw_kb) == set(other.raw_kb)
 
     def __neq__(self, other):
         return not (self == other)
@@ -347,6 +348,9 @@ def parse_sentence(sentence):
     operator = __get_operator(brace_replaced[0])
     operands = __get_operands(brace_replaced, operator)
 
+    if not operands:
+        raise utils.ParsingError("Could not parse sentence '{0}'".format(sentence))
+
     return (operator, ) + operands
 
 
@@ -366,6 +370,9 @@ def __get_operator(brace_replaced_sentence):
 
 def __get_operands(brace_replaced_sentence, operator):
     text, replacements = brace_replaced_sentence
+    
+    if operator == None:
+        return False
 
     if operator == LogicOperator.Negation:
         sentence = Braces.restore_braces(text, replacements)
@@ -373,8 +380,6 @@ def __get_operands(brace_replaced_sentence, operator):
             return (sentence[1:], )
         return False
 
-    if operator not in text:
-        return False
     lhs, rhs = text.split(" {0} ".format(operator), maxsplit=1)
     separator = "!SEPARATOR!"
     separated = "{0} {1} {2}".format(lhs, separator, rhs)

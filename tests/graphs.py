@@ -23,6 +23,9 @@ class GraphFactoryTests(unittest.TestCase):
         self.assertCountEqual(dg.children_iter("A"), {"B", "C"})
         self.assertCountEqual(dg.children_iter("B"), set())
         self.assertCountEqual(dg.children_iter("C"), set())
+
+        dg.remove_edge("A", "B")
+        self.assertCountEqual(dg.children_iter("A"), {"C"})
         
     def test_graph(self):
         g = Graph()
@@ -35,6 +38,11 @@ class GraphFactoryTests(unittest.TestCase):
         
         self.assertCountEqual(g.children_iter("A"), {"B", "C"})
         self.assertCountEqual(g.children_iter("B"), {"A"})
+        self.assertCountEqual(g.children_iter("C"), {"A"})
+
+        g.remove_edge("A", "B")
+        self.assertCountEqual(g.children_iter("A"), {"C"})
+        self.assertCountEqual(g.children_iter("B"), set())
         self.assertCountEqual(g.children_iter("C"), {"A"})
 
     def test_iterator(self):

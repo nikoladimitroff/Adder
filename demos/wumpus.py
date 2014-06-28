@@ -2,7 +2,7 @@ from itertools import product
 from collections import namedtuple
 import random
 from adder import proplogic
-from adder.proplogic import PlKnowledgeBase
+from adder.proplogic import KnowledgeBase
 from adder.problem import Problem
 from adder.problem import Node
 from adder.search import astar
@@ -268,7 +268,7 @@ class PlanningProblem(Problem):
 class HybridAgent:
     def __init__(self, size):
         self.axiomatizer = _Axiomatizer(size)
-        self.kb = PlKnowledgeBase("\n".join(self.axiomatizer.generate_atemportal()), max_clause_len=3)
+        self.kb = KnowledgeBase("\n".join(self.axiomatizer.generate_atemportal()), max_clause_len=3)
         self.time = -1
         self.plan = []
         self.position = (1, 1)

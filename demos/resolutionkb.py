@@ -4,7 +4,7 @@ from adder import proplogic
 
 def load_kb(ir=True):
     print(ir)
-    return proplogic.PlKnowledgeBase("", max_clause_len=3, information_rich=ir)
+    return proplogic.KnowledgeBase("", max_clause_len=3, information_rich=ir)
 
 def clear_screen():
     os.system("cls" if os.name == "nt" else "clear")
@@ -19,6 +19,8 @@ def main():
         Programist <=> (Znam_Python & Znam_C)
         Znam_Python
         Znam_C
+        Znam_DIS
+        Znam_Asembler
     """
     told_statements = []
 
