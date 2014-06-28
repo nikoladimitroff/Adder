@@ -150,6 +150,6 @@ def main():
     image = deepcopy(buffer)
     for state, action in solution:
         draw_image(state, image, buffer, size)
-        sleep(0.25)
+        sleep(1)
 
 main()

@@ -3,31 +3,32 @@ import random
 
 from adder.utils import InvalidArgumentError
 
+
 class Node:
     def __init__(self, state, parent, action, path_cost):
         self.__state = state
         self.__parent = parent
         self.__action = action
         self.__path_cost = path_cost
-        
+
     def __eq__(self, other):
         return self.state == other.state
-        
+
     def __ne__(self, other):
         return not self == other
-        
+
     def __hash__(self):
         return hash(self.state)
-        
+
     def __str__(self):
         parent_name = self.parent.state if self.parent else "None"
         return self.state
         return "(State: {0}, Parent: {1}, Action: {2})"\
                 .format(self.state, parent_name, self.action)
-        
+
     def __repr__(self):
         return str(self)
-        
+
     @property
     def state(self): return self.__state
     @property
@@ -46,34 +47,34 @@ class Problem:
         state = self.result(node.state, action)
         action = action
         path_cost = node.path_cost + self.step_cost(node.state, action)
-        
+
         child = Node(state, parent, action, path_cost)
         return child
-        
+
     def actions_iter(self, state):
         raise NotImplementedError("_Problem is abc")
-        
+
     def step_cost(state, action):
         raise NotImplementedError("_Problem is abc")
-        
+
     def result(self, state, action):
         raise NotImplementedError("_Problem is abc")
-        
+
     def goal_test(self, state):
         raise NotImplementedError("_Problem is abc")
-        
+
     def construct_solution(self, end_node):
         path = []
         while end_node != self.initial:
             parent = end_node.parent
-                
+
             path.append((end_node.state, end_node.action))
             end_node = parent
         path.append((self.initial.state, None))
         path.reverse()
         return path
-        
-        
+
+
     def solution_cost(self, solution):
         if solution is FAILURE or solution is SOLUTION_UNKNOWN:
             return 0
@@ -82,7 +83,7 @@ class Problem:
         previous_state = None
         for state, action in solution:
             if previous_state:
-                cost += self.step_cost(previous_state, action) 
+                cost += self.step_cost(previous_state, action)
             previous_state = state
         return cost
 
@@ -93,20 +94,20 @@ class _GraphProblem(Problem):
             raise InvalidArgumentError("root must be be a node in the graph")
         if goal not in graph.get_nodes():
             raise InvalidArgumentError("goal must be be a node in the graph")
-            
+
         self.graph = graph
         self.initial = Node(root, None, None, 0)
         self.goal = goal
-        
+
     def actions_iter(self, state):
         return self.graph.children_iter(state)
-        
+
     def step_cost(self, state, action):
         return self.graph.edge_cost(state, action)
-        
+
     def result(self, state, action):
         return action if action in self.graph.children_iter(state) else None
-        
+
     def goal_test(self, state):
         return state == self.goal
 
@@ -129,7 +130,7 @@ class _NPuzzleProblem(Problem):
         self.board_size = int(self.board_size)
         self.initial = Node(initial, None, None, 0)
         self.goal = goal
-        
+
     def _swap_letters(self, state, first, second):
         next_state = list(state)
         next_state[first], next_state[second] = next_state[second], next_state[first]
@@ -145,7 +146,7 @@ class _NPuzzleProblem(Problem):
         j = index % self.board_size
         i = (index - j) / self.board_size
         return (i, int(j))
-    
+
     def actions_iter(self, state):
         i, j = self.coords_of(state, 0)
 
@@ -161,11 +162,11 @@ class _NPuzzleProblem(Problem):
             neighbours.append(_NPuzzleProblem.LEFT)
 
         return iter(neighbours)
-            
-        
+
+
     def step_cost(self, state, action):
         return 1
-        
+
     def result(self, state, action):
         index = state.index("0")
         if action == _NPuzzleProblem.UP:
@@ -176,17 +177,17 @@ class _NPuzzleProblem(Problem):
             return self._swap_letters(state, index, index + 1)
         if action == _NPuzzleProblem.LEFT:
             return self._swap_letters(state, index, index - 1)
-        
+
     def goal_test(self, state):
         return state == self.goal
 
-    
+
 class _NQueensProblem(Problem):
     def __init__(self, size, initial=None):
         self.size = size
         initial = initial if initial else _NQueensProblem.generate_random_state(size)
         self.initial = Node(initial, None, None, 0)
-        
+
     def generate_random_state(size):
         return tuple(random.randint(0, size) for i in range(size))
 
@@ -213,11 +214,11 @@ class _NQueensProblem(Problem):
             for row in range(self.size):
                 if row == state[col]: continue
                 yield (col, row)
-            
-        
+
+
     def step_cost(self, state, action):
         return 1
-        
+
     def result(self, state, action):
         col_index, row_index = action
         next_state = list(state)
@@ -228,10 +229,10 @@ class _NQueensProblem(Problem):
     def goal_test(self, state):
         return _NQueensProblem.attacking(state) == 0
 
-        
+
 class ProblemFactory:
     def from_graph(self, graph, root, goal):
-        return _GraphProblem(graph, root, goal)        
+        return _GraphProblem(graph, root, goal)
 
     def from_functions(self, initial_state, actions,
                        step_cost, result, goal_test):

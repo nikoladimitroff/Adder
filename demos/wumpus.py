@@ -8,7 +8,7 @@ from adder.problem import Node
 from adder.search import astar
 
 class _Axiomatizer:
-    FACTS = [ 
+    FACTS = [
         "!P11",
         "L11_0",
         "FacingEast_0",
@@ -19,7 +19,7 @@ class _Axiomatizer:
 
     def wumpus_world(self):
         return product(range(1, self.size + 1), range(1, self.size + 1))
- 
+
     def __neighbours(self, row, col):
         neighbours = []
         if row > 1:
@@ -30,22 +30,22 @@ class _Axiomatizer:
             neighbours.append((row, col - 1))
         if col < self.size:
             neighbours.append((row, col + 1))
-            
+
         return neighbours
 
     def __breeze(self, row, col):
         pit_disjuncts = " | ".join(["P{0}{1}".format(row_neighb, col_neighb) for
                                     row_neighb, col_neighb in self.__neighbours(row, col)])
         breeze_axiom = "B{0}{1} <=> ({2})".format(row, col, pit_disjuncts)
-        
+
         return breeze_axiom
 
-        
+
     def __percepts(self, time, position):
         row, col = position
         breeze = "L{0}{1}_{2} => (Breeze_{2} <=> B{0}{1})".format(row, col, time)
         return [breeze]
-        
+
     def __successor_state_axioms(self, time, position):
         axioms = []
 
@@ -54,13 +54,13 @@ class _Axiomatizer:
         west = "FacingWest_{0} <=> ((FacingNorth_{1} & Turn_{1}) | (FacingWest_{1} & !Turn_{1}))".format(time + 1, time)
         south = "FacingSouth_{0} <=> ((FacingWest_{1} & Turn_{1}) | (FacingSouth_{1} & !Turn_{1}))".format(time + 1, time)
         axioms += east, north, west, south
-        
-        row, col = position    
+
+        row, col = position
         location_pattern = " | (L{0}{1}_{2} & ({3} & Forward_{2})))"
         location = "L{0}{1}_{2} <=> " \
                     "((L{0}{1}_{3} & !Forward_{3})" \
                     .format(row, col, time + 1, time)
-                
+
         if row > 1:
             location += location_pattern.format(row - 1, col, time, "FacingSouth_{0}".format(time))
         if row < self.size:
@@ -70,9 +70,9 @@ class _Axiomatizer:
         if col < self.size:
             location += location_pattern.format(row, col + 1, time, "FacingEast_{0}".format(time))
         #axioms.append(location)
-                
+
         axioms.append("L{0}{1}_{2}".format(position[0], position[1], time))
-        
+
         return axioms
 
     def __helper_axioms(self, time):
@@ -89,7 +89,7 @@ class _Axiomatizer:
         at_most_1_location = []
         for row1, col1 in self.wumpus_world():
             lhs = "L{0}{1}_{2}".format(row1, col1, time)
-            rhs = " & ".join("!L{0}{1}_{2}".format(row2, col2, time) 
+            rhs = " & ".join("!L{0}{1}_{2}".format(row2, col2, time)
                              for row2, col2 in self.wumpus_world()
                              if row2 != row1 or col2 != col1)
 
@@ -142,7 +142,7 @@ class World:
         self.hero = agent
         self.hero.position = (1, 1)
         self.hero.orientation = Orientation.East
- 
+
     @staticmethod
     def get_movement_vector(orientation):
         if orientation == Orientation.East:
@@ -152,8 +152,8 @@ class World:
         if orientation == Orientation.West:
             return (0, -1)
         if orientation == Orientation.South:
-            return (1, 0)        
-           
+            return (1, 0)
+
     def __neighbours(self, row, col):
         row -= 1
         col -= 1
@@ -166,7 +166,7 @@ class World:
             neighbours.append(self.grid[row][col - 1])
         if col < self.size - 1:
             neighbours.append(self.grid[row][col + 1])
-            
+
         return neighbours
 
     def __generate_world(self):
@@ -236,14 +236,14 @@ class PlanningProblem(Problem):
         self.goal = goal
         self.cells = safe_cells
         initial_state = (current_position, current_orientation)
-        self.initial = Node(initial_state, None, None, 0) 
+        self.initial = Node(initial_state, None, None, 0)
 
     def actions_iter(self, state):
         return [Actions.Forward, Actions.Turn]
-        
+
     def step_cost(self, state, action):
         return 1
-        
+
     def result(self, state, action):
         position, orientation = state
         if action == Actions.Forward:
@@ -301,7 +301,7 @@ class HybridAgent:
         if self.kb.ask("Glitter_{0}".format(self.time)):
             self.plan = [Actions.Grab] + self.plan_route_to((1, 1), safe_cells) \
                          + [Actions.Climb]
-        
+
         if len(self.plan) == 0:
             unvisited = set()
             for row, col in self.axiomatizer.wumpus_world():
@@ -310,7 +310,7 @@ class HybridAgent:
                     if self.kb.ask("L{0}{1}_{2}".format(row, col, time)):
                         is_visited = True
                         break
-                if not is_visited: 
+                if not is_visited:
                     unvisited.add((row, col))
 
 
@@ -322,7 +322,7 @@ class HybridAgent:
 
             unvisited_and_safe = unvisited.intersection(safe_cells)
             target = unvisited_and_safe.pop()
-            self.plan = [action for next_state, action in 
+            self.plan = [action for next_state, action in
                          self.plan_route_to(target, safe_cells)]
             self.plan.pop(0)
 
@@ -337,7 +337,7 @@ class HybridAgent:
             if self.kb.ask("L{0}{1}_{2}".format(row, col, self.time)):
                 self.position = row, col
                 break
-        
+
         orientation = Orientation.South
         if self.kb.ask("FacingEast_{0}".format(self.time)):
             orientation = Orientation.East

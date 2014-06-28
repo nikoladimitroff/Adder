@@ -54,7 +54,7 @@ def main():
             clear_screen()
 
         elif command.startswith("tell"):
-            sentence = command.split(maxsplit=1)[1] 
+            sentence = command.split(maxsplit=1)[1]
             kb.tell(sentence)
             told_statements.append(sentence)
         elif command.startswith("ask"):
