@@ -1,17 +1,12 @@
-# Depends on: adder, tests.config
 import functools
 import os
 import unittest
 import random
 
-from adder import graphs
-from adder import problem
-from adder import search
-from tests import config
-
+from adder import graphs, problem, search
 import tests.config as config
 
-class SearchTests(unittest.TestCase):
+class SearchTest(unittest.TestCase):
     def __init__(self, *args):
         unittest.TestCase.__init__(self, *args)  
     
@@ -30,7 +25,7 @@ class SearchTests(unittest.TestCase):
         solution = search_algorithm(problem_instance)
         return (problem_instance, solution)
         
-    def assert_cost(self, problem_instance, solution, expected):        
+    def assert_cost(self, problem_instance, solution, expected): 
         # Compare the expected cost with the actual cost
         actual_cost = problem_instance.solution_cost(solution)
         expected_cost = 0
@@ -83,20 +78,20 @@ class SearchTests(unittest.TestCase):
             else:
                 has_passed = True
         self.assertTrue(has_passed, "Nondeterministic test failed for all sequences")
-            
-    
+
+
     def assert_bulgaria_disconnected(self, search_algorithm):   
         assert_disconnected = functools.partial(self.assert_solution, search_algorithm, "bulgaria_disconnected_map")
         assert_disconnected("Pernik", "Varna", problem.FAILURE)
         assert_disconnected("Varna", "Sofia", problem.FAILURE)
         assert_disconnected("Burgas", "Kustendil", problem.FAILURE)
-            
 
-class BfsTests(SearchTests):
-    def test_bulgaria_disconnected(self):   
+
+class BfsTests(SearchTest):
+    def test_bulgaria_disconnected(self):
         self.assert_bulgaria_disconnected(search.bfs)
         
-    def test_germany(self):   
+    def test_germany(self): 
         assert_bfs = functools.partial(self.assert_solution, search.bfs, "germany_map")
         assert_bfs("Frankfurt", "Karlsruhe", ["Frankfurt", "Mannheim", "Karlsruhe"])
         assert_bfs("Frankfurt", "Munchen", ["Frankfurt", "Kassel", "Munchen"])
@@ -131,14 +126,14 @@ class BfsTests(SearchTests):
         ]
         solutions_oradea_lugoj = [
             ["Oradea", "Zerind", "Arad", "Timisoara", "Lugoj"],
-            ["Oradea", "Sibiu", "Arad", "Timisoara", "Lugoj"],        
+            ["Oradea", "Sibiu", "Arad", "Timisoara", "Lugoj"],
         ]
         
         assert_bfs_nondeterministic("RimnicuVilcea", "Lugoj", solutions_rv_lugoj)
         assert_bfs_nondeterministic("Oradea", "Lugoj", solutions_oradea_lugoj)
-        
 
-class DlsTests(SearchTests):
+
+class DlsTests(SearchTest):
     def test_bulgaria_disconnected(self):   
         search_algo = lambda problem: search.depth_limited_search(problem, 5)
         self.assert_bulgaria_disconnected(search_algo)
@@ -168,11 +163,12 @@ class DlsTests(SearchTests):
         assert_dls_0("Urziceni", "Urziceni", ["Urziceni"])
         assert_dls_2("Bucharest", "Oradea", problem.SOLUTION_UNKNOWN)
         assert_dls_2("Arad", "RimnicuVilcea", ["Arad", "Sibiu", "RimnicuVilcea"])
-        
-        
-class AStarTests(SearchTests):
+
+
+class AStarTests(SearchTest):
     def test_bulgaria_disconnected(self):   
-        heuristic_dict = { "Pernik": 20, "Sofia": 20, "Varna": 120, "Burgas": 120, "Dupnica": 35, "Kustendil": 35 }
+        heuristic_dict = { "Pernik": 20, "Sofia": 20, "Varna": 120, 
+                          "Burgas": 120, "Dupnica": 35, "Kustendil": 35 }
         heuristic = lambda source: heuristic_dict[source]
         search_algo = lambda problem: search.astar(problem, heuristic)
         self.assert_bulgaria_disconnected(search_algo)
@@ -191,20 +187,23 @@ class AStarTests(SearchTests):
         assert_astar = functools.partial(self.assert_solution, 
                         lambda problem: search.astar(problem, heuristic), 
                         "romania_map")
-        assert_astar("Arad", "Bucharest", ["Arad", "Sibiu", "RimnicuVilcea", "Pitesti", "Bucharest"])
+        expected = ["Arad", "Sibiu", "RimnicuVilcea", "Pitesti", "Bucharest"]
+        assert_astar("Arad", "Bucharest", expected)
         
     def test_bulgaria(self):
         # Straight line distances to Pernik
         # source http://distance.bg360.net/
         pernik_dist = { 
             "Sofia": 25.4, "Pernik": 0, "Kustendil": 45.3, "Dupnica": 38, 
-            "Blagoevgrad": 65, "Sandanski": 117, "Kulata": 138, "Botevgrad": 70, "Vraca": 80, 
-            "Montana": 90, "Belogradchik": 117, "Lom": 136, "Vidin": 155, "Lovech": 149, 
-            "Pleven": 156, "Tarnovo": 217, "Biala": 239, "Ruse": 274, "Razgrad": 303, 
-            "Shumen": 326, "Dobrich": 403, "Silistra": 381, "Varna": 402, "Burgas": 362.9, 
-            "Iambol": 284, "Plovdiv": 149, "Karlovo": 144, "StaraZagora": 214, "Kazanlak": 192, 
-            "Gabrovo": 188, "Haskovo": 220, "Kardzhali": 221, "Smolian": 178, "Pazardzhik": 116, 
-            "Pirdop": 93, "Troian": 140, "Sliven": 269
+            "Blagoevgrad": 65, "Sandanski": 117, "Kulata": 138, "Botevgrad": 70,
+            "Vraca": 80, "Montana": 90, "Belogradchik": 117, "Lom": 136, 
+            "Vidin": 155, "Lovech": 149, "Pleven": 156, "Tarnovo": 217, 
+            "Biala": 239, "Ruse": 274, "Razgrad": 303, "Shumen": 326, 
+            "Dobrich": 403, "Silistra": 381, "Varna": 402, "Burgas": 362.9, 
+            "Iambol": 284, "Plovdiv": 149, "Karlovo": 144, "StaraZagora": 214,
+            "Kazanlak": 192, "Gabrovo": 188, "Haskovo": 220, "Kardzhali": 221,
+            "Smolian": 178, "Pazardzhik": 116, "Pirdop": 93, "Troian": 140,
+            "Sliven": 269
         }
         
         heuristic = lambda town: pernik_dist[town]
@@ -217,7 +216,7 @@ class AStarTests(SearchTests):
         assert_astar("Silistra", "Pernik", ['Silistra', 'Ruse', 'Biala', 'Lovech', 'Botevgrad', 'Sofia', 'Pernik'])
 
 
-class AStarNPuzzleTests(SearchTests):    
+class AStarNPuzzleTests(SearchTest):    
     def assert_npuzzle(self, initial, goal, expected_solution_length):
         factory = problem.ProblemFactory()
         problem_instance = factory.from_npuzzle(initial, goal)
@@ -238,28 +237,27 @@ class HillClimbingQueensTests(unittest.TestCase):
         local_minima = factory.from_nqueens(8, initial=(7, 2, 6, 3, 1, 4, 0, 5))
         heuristic = factory.heuristic_for(local_minima)
 
-        solution = search.hill_climbing(local_minima, heuristic, 0, local_minima_acceptable=True)
+        solution = search.hill_climbing(local_minima, heuristic, 0, 
+                                        local_minima_acceptable=True)
         self.assertNotEqual(solution, problem.FAILURE)
         solution = search.hill_climbing(local_minima, heuristic, 0)
         self.assertEqual(solution, problem.FAILURE)
-
-    def test_hill_climbing(self):
-        pass
 
     def test_random_restart_hill_climbing(self):
         factory = problem.ProblemFactory()
         queens8_gen = functools.partial(factory.from_nqueens, 8)
         heuristic = factory.heuristic_for(queens8_gen())
         for _ in range(10):
-            self.assertNotEqual(search.random_restart_hc(queens8_gen, heuristic, 100), problem.FAILURE)
+            solution = search.random_restart_hc(queens8_gen, heuristic, 100)
+            self.assertNotEqual(solution, problem.FAILURE)
             
     def test_random_restart_hill_climbing_giant_queens(self):
         factory = problem.ProblemFactory()
         size = 14
-        queens_mil_gen = functools.partial(factory.from_nqueens, size)
-        heuristic = factory.heuristic_for(queens_mil_gen())
-        self.assertNotEqual(search.random_restart_hc(queens_mil_gen, heuristic, 100), problem.FAILURE)
-
+        queens_gen = functools.partial(factory.from_nqueens, size)
+        heuristic = factory.heuristic_for(queens_gen())
+        solution = search.random_restart_hc(queens_gen, heuristic, 100)
+        self.assertNotEqual(solution, problem.FAILURE)
 
 
 class SimulatedAnnealingTests(unittest.TestCase):
@@ -278,7 +276,8 @@ class SimulatedAnnealingTests(unittest.TestCase):
 
     def test_simulated_annealing_landscape(self):
         height = 8
-        landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5, 4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
+        landscape = [2, 3, 4, 3, 2, 3, 5, 6, 5, 4, 5,
+                     4, 3, 2, 3, 4, 5, 6, 7, 6, 5, 4]
         state = 0
         def actions(state):
             actions = []
@@ -293,23 +292,24 @@ class SimulatedAnnealingTests(unittest.TestCase):
         goal_state = lambda state: heuristic(state) == 0
 
         factory = problem.ProblemFactory()
-        pr = factory.from_functions(state, actions, step_cost, result, goal_state)
+        pr = factory.from_functions(state, actions, step_cost, 
+                                    result, goal_state)
 
-        solution = search.simulated_annealing(pr, heuristic, local_minima_acceptable=True)
+        solution = search.simulated_annealing(pr, heuristic, 
+                                              local_minima_acceptable=True)
         self.assertNotEqual(solution, problem.FAILURE)
         final_state = solution[-1][0]
-        # Assert that SA has found at least the best local minima
+        # Assert that SA has found at least the second best local minima
         self.assertLessEqual(heuristic(final_state), 1)
 
-        
+
 class GeneticTests(unittest.TestCase):
-    
-    def _reproduce_nqueens(self, father, mother, crossover):
+    def __reproduce_nqueens(self, father, mother, crossover):
         child = [father[i] if i < crossover else mother[i] 
                  for i in range(len(father))]
         return tuple(child)
 
-    def _mutate_nqueens(self, state):
+    def __mutate_nqueens(self, state):
         column = random.randint(0, len(state) - 1)
         while True:
             row = random.randint(0, len(state) - 1)
@@ -326,8 +326,10 @@ class GeneticTests(unittest.TestCase):
         most_attacking_queens = sum(range(size))
         fitness = lambda state: most_attacking_queens - heuristic(state)
         population_size = 10
-        
-        res = search.genetic(state_gen, fitness, most_attacking_queens, self._reproduce_nqueens, self._mutate_nqueens, population_size)
+
+        res = search.genetic(state_gen, fitness, most_attacking_queens, 
+                             self.__reproduce_nqueens, self.__mutate_nqueens,
+                             population_size)
         self.assertEqual(heuristic(res), 0)
 
 

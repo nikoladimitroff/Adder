@@ -1,5 +1,3 @@
-# Depends on: graphs.py
-
 from functools import partial
 import random
 
@@ -24,7 +22,8 @@ class Node:
     def __str__(self):
         parent_name = self.parent.state if self.parent else "None"
         return self.state
-        return "(State: {0}, Parent: {1}, Action: {2})".format(self.state, parent_name, self.action)
+        return "(State: {0}, Parent: {1}, Action: {2})"\
+                .format(self.state, parent_name, self.action)
         
     def __repr__(self):
         return str(self)
@@ -68,7 +67,7 @@ class Problem:
         while end_node != self.initial:
             parent = end_node.parent
                 
-            path.append((end_node.state, end_node.action))           
+            path.append((end_node.state, end_node.action))
             end_node = parent
         path.append((self.initial.state, None))
         path.reverse()
@@ -78,14 +77,15 @@ class Problem:
     def solution_cost(self, solution):
         if solution is FAILURE or solution is SOLUTION_UNKNOWN:
             return 0
-            
+
         cost = 0
         previous_state = None
         for state, action in solution:
-            cost += self.step_cost(previous_state, action) if previous_state else 0
+            if previous_state:
+                cost += self.step_cost(previous_state, action) 
             previous_state = state
         return cost
-        
+
 
 class _GraphProblem(Problem):
     def __init__(self, graph, root, goal):
@@ -119,8 +119,8 @@ class _NPuzzleProblem(Problem):
     RIGHT = "RIGHT"
 
     def __init__(self, initial, goal):
-        initial = initial if isinstance(initial, tuple) else tuple(initial.split())
-        goal = goal if isinstance(goal, tuple) else tuple(goal.split())
+        initial = tuple(initial.split())
+        goal = tuple(goal.split())
 
         self.board_size = len(initial) ** 0.5
         if not self.board_size.is_integer():
@@ -184,8 +184,8 @@ class _NPuzzleProblem(Problem):
 class _NQueensProblem(Problem):
     def __init__(self, size, initial=None):
         self.size = size
-        initial_state = initial if initial else _NQueensProblem.generate_random_state(size)
-        self.initial = Node(initial_state, None, None, 0)
+        initial = initial if initial else _NQueensProblem.generate_random_state(size)
+        self.initial = Node(initial, None, None, 0)
         
     def generate_random_state(size):
         return tuple(random.randint(0, size) for i in range(size))
@@ -233,7 +233,8 @@ class ProblemFactory:
     def from_graph(self, graph, root, goal):
         return _GraphProblem(graph, root, goal)        
 
-    def from_functions(self, initial_state, actions, step_cost, result, goal_test):
+    def from_functions(self, initial_state, actions,
+                       step_cost, result, goal_test):
         problem = Problem()
         problem.initial = Node(initial_state, None, None, 0)
         problem.actions_iter = actions
@@ -249,7 +250,7 @@ class ProblemFactory:
     def from_nqueens(self, size, initial=None):
         return _NQueensProblem(size, initial)
 
-    
+
     def _manhattan_heuristic(problem_instance, state):
         scoords = [problem_instance.coords_of(state, num) for num in state]
         gcoords = [problem_instance.coords_of(state, num) for num in problem_instance.goal]

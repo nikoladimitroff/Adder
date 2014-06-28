@@ -4,8 +4,8 @@ import random
 import math
 from time import sleep
 
-from adder.problem import FAILURE
-from adder.problem import SOLUTION_UNKNOWN
+from adder.problem import FAILURE, SOLUTION_UNKNOWN
+from adder.utils import InvalidArgumentError
 
 # <uninformed searches>
 
@@ -33,7 +33,8 @@ def bfs(problem):
 
 
 def depth_limited_search(problem, max_depth):
-    return __recursive_dls(problem, problem.initial, {problem.initial}, max_depth)
+    return __recursive_dls(problem, problem.initial, 
+                           {problem.initial}, max_depth)
 
 
 def __recursive_dls(problem, node, visited, max_depth):
@@ -48,7 +49,8 @@ def __recursive_dls(problem, node, visited, max_depth):
         child = problem.child_node(node, action)
         if child not in visited:
             visited.add(child)
-            child_dls = __recursive_dls(problem, child, set(visited), max_depth - 1)
+            child_dls = __recursive_dls(problem, child, 
+                                        set(visited), max_depth - 1)
             if child_dls is SOLUTION_UNKNOWN:
                 unknown_occured = True
             elif child_dls is not FAILURE:
@@ -82,23 +84,22 @@ def astar(problem, heuristic):
     
     f_values = { node: heuristic(node.state)}
     g_values = { node: 0 }
-    nodes_generated = 0
     while len(frontier) != 0:
         # Expand the node with lowest f_value
-        frontier_f_scores = [(f_values[expanded], index) 
-                             for index, expanded in enumerate(frontier)]
+        frontier_f_scores = ((f_values[expanded], index) 
+                             for index, expanded in enumerate(frontier))
         node_index = min(frontier_f_scores, key=__astar_key_comparer)[1]
- 
+
         node = frontier.pop(node_index)
         visited.add(node)
-        
+
         if problem.goal_test(node.state):
             return problem.construct_solution(node)
-        
+
         for action in problem.actions_iter(node.state):
             child = problem.child_node(node, action)
             if child in visited: continue
-            
+
             new_g_value = g_values[node] + problem.step_cost(node.state, action)
             child_index = -1
             for i, element in enumerate(frontier):
@@ -112,7 +113,7 @@ def astar(problem, heuristic):
                 # Update the node so that it has proper parent, action and cost
                 frontier[child_index] = child
                 
-            if child not in frontier:
+            if not child_in_frontier:
                 frontier.append(child)
             
             if not child_in_frontier or needs_update:
@@ -121,7 +122,8 @@ def astar(problem, heuristic):
     return FAILURE
 
 
-def hill_climbing(problem, heuristic, max_sideways_walk, local_minima_acceptable=False):
+def hill_climbing(problem, heuristic, max_sideways_walk, 
+                  local_minima_acceptable=False):
     node = problem.initial
     current_cost = float("inf")
     sideway_moves = 0
@@ -146,9 +148,11 @@ def hill_climbing(problem, heuristic, max_sideways_walk, local_minima_acceptable
         current_cost = cost
 
 
-def random_restart_hc(problem_generator, heuristic, max_sideways_walk, max_iterations=1<<31):
+def random_restart_hc(problem_generator, heuristic, 
+                      max_sideways_walk, max_iterations=1<<31):
     for _ in range(max_iterations):
-        solution = hill_climbing(problem_generator(), heuristic, max_sideways_walk)
+        solution = hill_climbing(problem_generator(), heuristic, 
+                                 max_sideways_walk)
         if solution != FAILURE:
             return solution
 
@@ -169,12 +173,13 @@ def simulated_annealing(problem, heuristic,
     node = problem.initial
     current_cost = heuristic(node.state)
     max_time = 1000
+    max_temp = temperature_func(1 / max_time)
     for time in range(1, max_time):
         print_state(node.state)
         if problem.goal_test(node.state):
             return problem.construct_solution(node)
-
-        temperature = temperature_func(time / max_time) / temperature_func(1 / max_time)
+         
+        temperature = temperature_func(time / max_time) / max_temp
         action = random.choice(list(problem.actions_iter(node.state)))
         child = problem.child_node(node, action)
         child_cost = heuristic(child.state)
@@ -191,7 +196,7 @@ def simulated_annealing(problem, heuristic,
     return problem.construct_solution(node) if local_minima_acceptable else FAILURE
 
 
-_MUTATION_CHANCE = 0.1
+__MUTATION_CHANCE = 0.1
 def genetic(state_generator, 
             fitness_func, 
             best_fitness_value,
@@ -226,11 +231,11 @@ def genetic(state_generator,
         generation_fitness = {}
         generation_fitness_sum = 0
         for i in range(population_size):
-            father = _weighted_choice(population)
-            mother = _weighted_choice(population)
+            father = __weighted_choice(population)
+            mother = __weighted_choice(population)
             
-            for child in _reproduce(father, mother, reproducer):
-                if random.random() <= _MUTATION_CHANCE:
+            for child in __reproduce(father, mother, reproducer):
+                if random.random() <= __MUTATION_CHANCE:
                     child = mutator(child)
                 if child in generation_fitness: continue
                 generation_fitness[child] = fitness_func(child)
@@ -243,17 +248,17 @@ def genetic(state_generator,
 
     return max(population, key=lambda key_value_pair: key_value_pair[1])[0]
 
-def _weighted_choice(choices):
+def __weighted_choice(choices):
     r = random.uniform(0, 1)
     upto = 0
     for choice, weight in choices.items():
         if upto + weight > r:
             return choice
         upto += weight
-    assert False, "No way to get here"
+    raise InvalidArgumentError("Your weights do not sum to 1")
 
 
-def _reproduce(father, mother, reproducer):
+def __reproduce(father, mother, reproducer):
     crossover_point = random.randint(0, len(father) - 1)
     first_child = reproducer(father, mother, crossover_point) 
     second_child = reproducer(father, mother, len(father) - crossover_point)

@@ -48,7 +48,8 @@ class DefiniteClause:
 
 class DefiniteKnowledgeBase:
     def __init__(self, text):
-        self.raw_kb = [DefiniteClause(clause) for clause in text.strip().split("\n")]
+        self.raw_kb = [DefiniteClause(clause) 
+                       for clause in text.strip().split("\n")]
 
     def ask(self, query):
         return backward_chaining(self.raw_kb, query)
@@ -65,9 +66,11 @@ class DefiniteKnowledgeBase:
 
 
 def forward_chaining(knowledge_base, query):
-    premises_count = {clause: len(clause.premises) for clause in knowledge_base}
+    premises_count = {clause: len(clause.premises) 
+                      for clause in knowledge_base}
     inferred = {}
-    true_symbols = [clause.conclusion for clause in knowledge_base if clause.is_fact]
+    true_symbols = [clause.conclusion for clause in knowledge_base
+                    if clause.is_fact]
 
     while len(true_symbols) != 0:
         symbol = true_symbols.pop(0)
@@ -90,35 +93,34 @@ def backward_chaining(knowledge_base, query):
     true_symbols = {clause.conclusion for clause in knowledge_base 
                     if clause.is_fact}
 
-    return __backward_chaining_step(knowledge_base, query, true_symbols, true_symbols)
+    return __or_step(knowledge_base, query, 
+                                    true_symbols, true_symbols)
 
 
-def __backward_chaining_step(kb, query, true_symbols, checked):
+def __or_step(kb, query, true_symbols, checked):
     if query in true_symbols:
         return True
 
     applicable_implications = (clause for clause in kb 
                                if query == clause.conclusion)
 
-    return any(__check_implication(kb, true_symbols, checked, clause)
+    return any(__and_step(kb, true_symbols, checked, clause)
                for clause in applicable_implications)
 
 
-def __check_implication(kb, true_symbols, checked, clause):
+def __and_step(kb, true_symbols, checked, implication):
     all = True
-    for premise in clause.premises:
+    for premise in implication.premises:
         if premise not in checked:
-            is_premise_true = __backward_chaining_step(kb, 
-                                                       premise, 
-                                                       true_symbols,
-                                                       checked.union({premise}))
+            is_premise_true = __or_step(kb, premise, true_symbols,
+                                        checked.union({premise}))
             all = all and is_premise_true
     return all
 
 
 class PlKnowledgeBase:
     def __init__(self, text, max_clause_len=float("inf"), information_rich=True):
-        self.raw_kb = parse_cnf_knowledge_base(text)
+        self.raw_kb = parse_knowledge_base(text)
         self.max_clause_len = max_clause_len
         self.information_rich = information_rich
 
@@ -129,7 +131,7 @@ class PlKnowledgeBase:
 
     def tell(self, *args):
         for sentence in args:
-            self.raw_kb += parse_cnf_sentence(sentence)
+            self.raw_kb += parse_sentence_to_cnf(sentence.strip())
 
     def __eq__(self, other):
         return self.raw_kb == other.raw_kb
@@ -140,34 +142,36 @@ class PlKnowledgeBase:
 
 def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
     negated_query = "{0}({1})".format(LogicOperator.Negation, query)
-    not_query_cnf = parse_cnf_sentence(negated_query)
+    not_query_cnf = parse_sentence_to_cnf(negated_query)
     clauses = not_query_cnf + knowledge_base
     new_inferrences = set()
     already_resolved = set()
     
-    clauses2 = parse_cnf_sentence(query) + knowledge_base
+    clauses2 = parse_sentence_to_cnf(query) + knowledge_base
     new_inferrences2 = set()
     already_resolved2 = set()
 
     empty_set = frozenset()
 
     while True:
-        result = __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len)
+        result = __resolution_step(new_inferrences, already_resolved, 
+                                   clauses, max_clause_len)
         if result != None:
             return result
         
         if information_rich:
-            result = __resolution_loop(new_inferrences2, already_resolved2, clauses2, max_clause_len)
+            result = __resolution_step(new_inferrences2, already_resolved2,
+                                       clauses2, max_clause_len)
             if result != None:
                 return not result
 
-def __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len, empty_set=frozenset()):
+
+def __resolution_step(new_inferrences, already_resolved, clauses, max_clause_len, empty_set=frozenset()):
     new_inferrences.clear()
     pairs = ((clauses[i], clauses[j]) 
              for i in range(len(clauses))
              for j in range(i + 1, len(clauses))
              if (clauses[i], clauses[j]) not in already_resolved)
-    
 
     for c1, c2 in pairs:
         resolvents = __resolve(c1, c2, max_clause_len)
@@ -187,7 +191,6 @@ def __resolution_loop(new_inferrences, already_resolved, clauses, max_clause_len
     return None
 
 
-#@utils.memoize
 def __resolve(first_clause, second_clause, max_len):
     resolvents = []
     __resolve_single_sided(first_clause, second_clause, resolvents)
@@ -203,13 +206,13 @@ def __resolve_single_sided(c1, c2, resolvents):
             resolvents.append(c1.union(c2).difference({symbol, negation}))
 
 
-def parse_cnf_knowledge_base(text):
+def parse_knowledge_base(text):
     return [clause 
             for sentence in text.strip().split("\n") 
-            for clause in parse_cnf_sentence(sentence)]
+            for clause in parse_sentence_to_cnf(sentence)]
 
 
-def parse_cnf_sentence(sentence):
+def parse_sentence_to_cnf(sentence):
     cnf = Braces.flatten_braces(__convert_to_cnf(sentence))
    
     clauses = set()
@@ -243,6 +246,7 @@ def __clean_clauses(clauses):
             result.append(clause)
 
     return result
+
 
 def __equivalence_cnf(operands):
     lhs, rhs = operands
@@ -382,6 +386,7 @@ def print_cnf_clause(clause):
     if isinstance(clause, frozenset):
         printable = " | ".join(sorted(clause))
     else:
-        printable = "(" + ") & (".join([" | ".join(disjunct) for disjunct in clause]) + ")"
+        formula = ") & (".join([" | ".join(disjunct) for disjunct in clause])
+        printable = "({0})".format(formula)
     
     print(printable)

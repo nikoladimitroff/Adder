@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from adder import graphs
+from adder.graphs import Graph, Digraph, GraphLoader
 
 import tests.config as config
 
@@ -10,8 +10,8 @@ class GraphFactoryTests(unittest.TestCase):
         graph.add_edge("A", "B", 1)
         graph.add_edge("A", "C", 1)
   
-    def test_digraph_constructor(self):
-        dg = graphs.Digraph()
+    def test_digraph(self):
+        dg = Digraph()
         
         self.assertTrue(len(dg.get_nodes()) == 0)
         
@@ -24,8 +24,8 @@ class GraphFactoryTests(unittest.TestCase):
         self.assertCountEqual(dg.children_iter("B"), set())
         self.assertCountEqual(dg.children_iter("C"), set())
         
-    def test_graph_constructor(self):
-        g = graphs.Graph()
+    def test_graph(self):
+        g = Graph()
         
         self.assertTrue(len(g.get_nodes()) == 0)
         
@@ -36,14 +36,21 @@ class GraphFactoryTests(unittest.TestCase):
         self.assertCountEqual(g.children_iter("A"), {"B", "C"})
         self.assertCountEqual(g.children_iter("B"), {"A"})
         self.assertCountEqual(g.children_iter("C"), {"A"})
+
+    def test_iterator(self):
+        g = Graph()
+        self.fill_sample_graph(g)
+
+        self.assertCountEqual(set(g), {"A", "B", "C"})
         
 class GraphLoadingTests(unittest.TestCase):
     def assert_graph_loaded(self, graph, nodes, edges, is_directed=False):
-        self.assertIsInstance(graph, graphs.Graph if not is_directed else graphs.Digraph)
+        self.assertIsInstance(graph, Graph if not is_directed else Digraph)
         self.assertCountEqual(graph.get_nodes(), nodes)
         
         for source in edges:
-            self.assertCountEqual(graph.children_iter(source), {dest for dest, cost in edges[source]})
+            expected_destinations = {dest for dest, cost in edges[source]}
+            self.assertCountEqual(graph.children_iter(source), expected_destinations)
             for destination, cost in edges[source]:
                 self.assertEqual(graph.edge_cost(source, destination), cost)
     
@@ -107,14 +114,14 @@ class GraphLoadingTests(unittest.TestCase):
             with open(path) as file:
                 file_content = file.read()
             
-            loader = graphs.GraphLoader()
+            loader = GraphLoader()
             graph = loader.from_string(file_content)
             test_func = getattr(self, "assert_{0}_loaded".format(test_name))
             test_func(graph)
         
     def test_graph_load_from_file(self):
         for test_name, path in config.TEST_GRAPHS.items():
-            loader = graphs.GraphLoader()
+            loader = GraphLoader()
             graph = loader.from_file(path)
             test_func = getattr(self, "assert_{0}_loaded".format(test_name))
             test_func(graph)        

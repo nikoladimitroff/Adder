@@ -1,7 +1,7 @@
-# Depends on: adder
-from adder import proplogic
 import os
 import unittest
+
+from adder import proplogic
 
 import tests.config as config
 
@@ -39,9 +39,7 @@ class DefiniteClausesTests(unittest.TestCase):
         self.assertTrue(q)
         self.assertFalse(not_q)
 
-
-        
-    def test_bs_sample(self):
+    def test_bc_sample(self):
         q = proplogic.backward_chaining(self.kb.raw_kb, "Q")
         not_q = proplogic.backward_chaining(self.kb.raw_kb, "!Q")
         self.assertTrue(q)
@@ -72,13 +70,13 @@ class CnfConverterTests(unittest.TestCase):
         ]
 
         for formula, cnf in formula_equivalences:
-            result = proplogic.parse_cnf_sentence(formula)
-            result2 = proplogic.parse_cnf_sentence(cnf)
+            result = proplogic.parse_sentence_to_cnf(formula)
+            result2 = proplogic.parse_sentence_to_cnf(cnf)
             expected_cnf = [{symbol.strip() for symbol in 
-                             disjunct.replace(")", "").replace("(", "").split("|")
+                             conjunct.replace(")", "").replace("(", "").split("|")
                              }
-                            for disjunct in cnf.split("&")
-                            if len(disjunct) != 0
+                            for conjunct in cnf.split("&")
+                            if len(conjunct) != 0
                             ]
             self.assertCountEqual(result, result2)
             self.assertCountEqual(result, expected_cnf)
@@ -96,7 +94,8 @@ class CnfConverterTests(unittest.TestCase):
         for formula, operator in formula_equivalences:
             parsed = proplogic.parse_sentence(formula)
             result_operator = parsed[0]
-            self.assertEqual(result_operator, operator, msg="{}/{}".format(formula, operator))
+            msg = "{}/{}".format(formula, operator)
+            self.assertEqual(result_operator, operator, msg=msg)
 
     def test_is_not_operator(self):
         formula_lies = [
@@ -108,7 +107,8 @@ class CnfConverterTests(unittest.TestCase):
         for formula, operator in formula_lies:
             parsed = proplogic.parse_sentence(formula)
             result_operator = parsed[0]
-            self.assertNotEqual(result_operator, operator, msg="{}/{}".format(formula, operator))
+            msg = "{}/{}".format(formula, operator)
+            self.assertNotEqual(result_operator, operator, msg=msg)
 
         
     def test_kb_parsing(self):
@@ -119,10 +119,10 @@ class CnfConverterTests(unittest.TestCase):
         ]
         kb = proplogic.PlKnowledgeBase("\n".join(formulae))
         expected = "(!A | B | D) & (!A | !B | C) & (!C | !D) & (C | D)"
-        expected_cnf = proplogic.parse_cnf_sentence(expected)
+        expected_cnf = proplogic.parse_sentence_to_cnf(expected)
         self.assertCountEqual(kb.raw_kb, expected_cnf)
 
-        and_concatenation = proplogic.parse_cnf_sentence(" & ".join(formulae))
+        and_concatenation = proplogic.parse_sentence_to_cnf(" & ".join(formulae))
         self.assertCountEqual(kb.raw_kb, and_concatenation)
 
 

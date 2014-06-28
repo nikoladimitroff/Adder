@@ -14,7 +14,7 @@ class Braces:
     Placeholder = "*"
     
     @staticmethod
-    def remove_surrounding_parenthesis(sentence):    
+    def remove_surrounding_parenthesis(sentence):
         if sentence[0] == Braces.Left and \
            sentence[-1] == Braces.Right:
             braces = 1

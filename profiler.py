@@ -6,8 +6,8 @@ import adder
 
 def profileWumpus():
     size = 2
-    world = wumpus.World(size)
     agent = wumpus.HybridAgent(size)
+    world = wumpus.World(size, agent)
     
     iterations = 1
     
@@ -16,10 +16,10 @@ def profileWumpus():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    for i in range(5):
+    for i in range(2):
         action = agent.update(percept)
-        print(action)
         percept = world.update(action)
+        print(percept, action, agent.position, agent.time)
 
     profiler.disable()
 
@@ -64,6 +64,23 @@ def profileKB():
 
 
 def profile():
-    profileWumpus()
+    import sys
+    sys.argv = ["profiler.py", "snake", "10"]
+
+    
+    profiler = cProfile.Profile()
+    profiler.enable()
+
+    import demos.snake
+
+    
+    profiler.disable()
+
+    s = io.StringIO()
+    sortby = "tottime"
+    ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print(s.getvalue())
+    #profileWumpus()
 
 profile()
