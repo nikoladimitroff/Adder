@@ -1,7 +1,33 @@
 import re
 
 from adder import problem
-from adder.logic import *
+from adder.logic import Braces, LogicOperator
+
+def skolemize(expression):
+    pass
+
+
+class _StandartizationReplacer:
+
+    STANDARDIZE_REGEX = re.compile(r"\b[a-z][a-z0-9]*\b", re.ASCII)
+    
+    def __init__(self, var, index):
+        self.var = var
+        self.index = index
+        self.replacements = {}
+
+    def __call__(self, match):
+        result = match.group()
+        if result not in self.replacements: 
+            self.replacements[result] = self.var + str(self.index)
+            self.index += 1
+
+        return self.replacements[result]
+
+
+def standardize_variables(expression, standard_var="x", index=0):
+    replacer = _StandartizationReplacer(standard_var, index)
+    return re.sub(replacer.STANDARDIZE_REGEX, replacer, expression)
 
 
 def unify(expression1, expression2):

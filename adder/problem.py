@@ -24,22 +24,30 @@ class Node:
         parent_name = self.parent.state if self.parent else "None"
         return self.state
         return "(State: {0}, Parent: {1}, Action: {2})"\
-                .format(self.state, parent_name, self.action)
+               .format(self.state, parent_name, self.action)
 
     def __repr__(self):
         return str(self)
 
     @property
-    def state(self): return self.__state
+    def state(self):
+        return self.__state
+
     @property
-    def parent(self): return self.__parent
+    def parent(self):
+        return self.__parent
+
     @property
-    def action(self): return self.__action
+    def action(self):
+        return self.__action
+
     @property
-    def path_cost(self): return self.__path_cost
+    def path_cost(self):
+        return self.__path_cost
 
 FAILURE = "FAILURE"
 SOLUTION_UNKNOWN = "SOLUTION_UNKNOWN"
+
 
 class Problem:
     def child_node(self, node, action):
@@ -73,7 +81,6 @@ class Problem:
         path.append((self.initial.state, None))
         path.reverse()
         return path
-
 
     def solution_cost(self, solution):
         if solution is FAILURE or solution is SOLUTION_UNKNOWN:
@@ -125,17 +132,18 @@ class _NPuzzleProblem(Problem):
 
         self.board_size = len(initial) ** 0.5
         if not self.board_size.is_integer():
-            raise InvalidArgumentError("The size of the board must be a exact square!")
+            msg = "The size of the board must be a exact square!"
+            raise InvalidArgumentError(msg)
 
         self.board_size = int(self.board_size)
         self.initial = Node(initial, None, None, 0)
         self.goal = goal
 
     def _swap_letters(self, state, first, second):
-        next_state = list(state)
-        next_state[first], next_state[second] = next_state[second], next_state[first]
+        next = list(state)
+        next[first], next[second] = next[second], next[first]
 
-        return tuple(next_state)
+        return tuple(next)
 
     def coords_of(self, state, number):
         number = str(number)
@@ -163,7 +171,6 @@ class _NPuzzleProblem(Problem):
 
         return iter(neighbours)
 
-
     def step_cost(self, state, action):
         return 1
 
@@ -185,7 +192,9 @@ class _NPuzzleProblem(Problem):
 class _NQueensProblem(Problem):
     def __init__(self, size, initial=None):
         self.size = size
-        initial = initial if initial else _NQueensProblem.generate_random_state(size)
+        initial = initial
+        if not initial:
+            initial = _NQueensProblem.generate_random_state(size)
         self.initial = Node(initial, None, None, 0)
 
     def generate_random_state(size):
@@ -208,13 +217,12 @@ class _NQueensProblem(Problem):
 
         return attacking
 
-
     def actions_iter(self, state):
         for col in range(self.size):
             for row in range(self.size):
-                if row == state[col]: continue
+                if row == state[col]:
+                    continue
                 yield (col, row)
-
 
     def step_cost(self, state, action):
         return 1
@@ -251,11 +259,13 @@ class ProblemFactory:
     def from_nqueens(self, size, initial=None):
         return _NQueensProblem(size, initial)
 
-
     def _manhattan_heuristic(problem_instance, state):
         scoords = [problem_instance.coords_of(state, num) for num in state]
-        gcoords = [problem_instance.coords_of(state, num) for num in problem_instance.goal]
-        diff = [abs(scoords[i][0] - gcoords[i][0]) + abs(scoords[i][1] - gcoords[i][1]) for i in range(0, len(state) - 1)]
+        gcoords = [problem_instance.coords_of(state, num)
+                   for num in problem_instance.goal]
+        diff = [abs(scoords[i][0] - gcoords[i][0]) +
+                abs(scoords[i][1] - gcoords[i][1])
+                for i in range(0, len(state) - 1)]
         return sum(diff)
 
     def heuristic_for(self, problem):

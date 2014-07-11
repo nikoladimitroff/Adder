@@ -7,6 +7,8 @@ class LogicOperator:
     Negation = "!"
     Implication = "=>"
     Equivalence = "<=>"
+    All = "V"
+    Exists = "E"
 
 
 class Braces:
