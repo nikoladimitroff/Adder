@@ -14,10 +14,10 @@ class LogicOperator:
 class Braces:
     Left = "("
     Right = ")"
-    Placeholder = "*"
+    Placeholder = "#"
 
     @staticmethod
-    def remove_surrounding_parenthesis(sentence):
+    def remove_surrounding(sentence):
         if sentence[0] == Braces.Left and \
            sentence[-1] == Braces.Right:
             braces = 1
@@ -32,7 +32,7 @@ class Braces:
         return sentence
 
     @staticmethod
-    def flatten_braces(text):
+    def flatten(text):
         tlb = False
         braces = 0
         result = ""
@@ -53,7 +53,7 @@ class Braces:
         return result
 
     @staticmethod
-    def brace_replace(text):
+    def replace(text):
         braces = 0
         tlb = False
         result = ""
@@ -77,11 +77,13 @@ class Braces:
                 if braces == 0:
                     tlb = False
                     replacement_table[replacement_index] += Braces.Right
-
-        return (re.sub("\*+", Braces.Placeholder, result), replacement_table)
+                    
+        replaced = re.sub("{}+".format(Braces.Placeholder), 
+                          Braces.Placeholder, result)
+        return (replaced, replacement_table)
 
     @staticmethod
-    def restore_braces(text, replacement_table):
+    def restore(text, replacement_table):
         for entry in replacement_table:
             text = text.replace("({0})".format(Braces.Placeholder), entry, 1)
 

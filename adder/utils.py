@@ -1,5 +1,8 @@
-class InvalidArgumentError(Exception):
+class AdderError(Exception):
     pass
 
-class ParsingError(Exception):
+class InvalidArgumentError(AdderError):
+    pass
+
+class ParsingError(AdderError):
     pass

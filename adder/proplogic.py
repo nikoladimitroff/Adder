@@ -216,7 +216,7 @@ def parse_knowledge_base(text):
 
 
 def parse_sentence_to_cnf(sentence):
-    cnf = Braces.flatten_braces(__convert_to_cnf(sentence))
+    cnf = Braces.flatten(__convert_to_cnf(sentence))
 
     clauses = set()
     for disjunct_text in cnf.split(LogicOperator.Conjuction):
@@ -292,7 +292,7 @@ def __conjuction_cnf(operands):
 
 
 def __negation_cnf(operands):
-    tail = Braces.remove_surrounding_parenthesis(operands[0])
+    tail = Braces.remove_surrounding(operands[0])
     if __is_var(tail):
         return LogicOperator.Negation + tail
 
@@ -347,10 +347,10 @@ def __is_var(sentence):
 
 
 def parse_sentence(sentence):
-    sentence = Braces.remove_surrounding_parenthesis(sentence.strip())
-    brace_replaced = Braces.brace_replace(sentence)
-    operator = __get_operator(brace_replaced[0])
-    operands = __get_operands(brace_replaced, operator)
+    sentence = Braces.remove_surrounding(sentence.strip())
+    replaced = Braces.replace(sentence)
+    operator = __get_operator(replaced[0])
+    operands = __get_operands(replaced, operator)
 
     if not operands:
         msg = "Could not parse sentence '{0}'".format(sentence)
@@ -359,7 +359,7 @@ def parse_sentence(sentence):
     return (operator, ) + operands
 
 
-def __get_operator(brace_replaced_sentence):
+def __get_operator(replaced_sentence):
     operator_precedence = [
         LogicOperator.Equivalence,
         LogicOperator.Implication,
@@ -369,18 +369,18 @@ def __get_operator(brace_replaced_sentence):
     ]
 
     for operator in operator_precedence:
-        if operator in brace_replaced_sentence:
+        if operator in replaced_sentence:
             return operator
 
 
-def __get_operands(brace_replaced_sentence, operator):
-    text, replacements = brace_replaced_sentence
+def __get_operands(replaced_sentence, operator):
+    text, replacements = replaced_sentence
 
     if operator is None:
         return False
 
     if operator == LogicOperator.Negation:
-        sentence = Braces.restore_braces(text, replacements)
+        sentence = Braces.restore(text, replacements)
         if sentence[0] == operator:
             return (sentence[1:], )
         return False
@@ -388,7 +388,7 @@ def __get_operands(brace_replaced_sentence, operator):
     lhs, rhs = text.split(" {0} ".format(operator), maxsplit=1)
     separator = "!SEPARATOR!"
     separated = "{0} {1} {2}".format(lhs, separator, rhs)
-    lhs, rhs = Braces.restore_braces(separated, replacements).split(separator)
+    lhs, rhs = Braces.restore(separated, replacements).split(separator)
     return (lhs.strip(), rhs.strip())
 
 

@@ -2,9 +2,60 @@ import re
 
 from adder import problem
 from adder.logic import Braces, LogicOperator
+from adder.utils import ParsingError
 
 def skolemize(expression):
-    pass
+    expression = "E x, y(P(x, y)) | V p, q(S(p, q) <=> E r(r) & E y,z(y == z) & x) & E x(x | V y(y))"
+    print(__build_skolem_tree(expression))
+	
+def __build_skolem_tree(expression, root=None):
+    universal = __first_universal(expression)
+    print("EXPR: ", expression)
+    if not universal:
+        return {root: __all_existenstials(expression)}
+    else:
+        left_end = universal.span()[1]
+        right_end = __find_right_index(expression[left_end:])
+        if not right_end:
+            raise ParsingError("Unbalanced parenthesis")
+        right_end += left_end
+        
+        left = expression[:universal.span()[0]]
+        middle = expression[left_end:right_end]
+        right = expression[right_end:]
+        
+        left_tree = __build_skolem_tree(left, root)
+        middle_tree = __build_skolem_tree(middle, universal.group(1))
+        right_tree = __build_skolem_tree(right, root)
+        return {root: left_tree[root] + [middle_tree] + right_tree[root]}
+        
+        
+    print(universal)
+    
+def __find_right_index(expression):
+    braces = 0
+    for index, symbol in enumerate(expression):
+        if symbol == '(':
+            braces += 1
+        elif symbol == ')':
+            braces -= 1
+        if braces == -1:
+            return index
+
+def __first_universal(expression):
+    common_regex = r"{0} ((?:\w+, ?)*(?:\w+))\("
+    uni_regex = common_regex.format(LogicOperator.All)
+    exists_regex = common_regex.format(LogicOperator.Exists)
+    
+    return re.search(uni_regex, expression)
+
+def __all_existenstials(expression):
+    common_regex = r"{0} ((?:\w+, ?)*(?:\w+))\("
+    uni_regex = common_regex.format(LogicOperator.All)
+    exists_regex = common_regex.format(LogicOperator.Exists)
+    
+    return re.findall(exists_regex, expression)
+    
 
 
 class _StandartizationReplacer:

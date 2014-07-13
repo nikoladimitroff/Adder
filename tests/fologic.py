@@ -21,6 +21,7 @@ class HelperTests(unittest.TestCase):
         self.assert_unification("Knows(John, x)", "Knows(x, Elizabeth)", FAILURE)
 
     def test_skolemization(self):
+        fologic.skolemize("ASd")
         self.fail()
 
     def test_standardize(self):
