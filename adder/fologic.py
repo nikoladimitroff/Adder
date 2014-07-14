@@ -1,21 +1,89 @@
 import re
+from collections import defaultdict
+from functools import partial
 
 from adder import problem
 from adder.logic import Braces, LogicOperator
 from adder.utils import ParsingError
 
-def skolemize(expression):
-    expression = "E x, y(P(x, y)) | V p, q(S(p, q) <=> E r(r) & E y,z(y == z) & x) & E x(x | V y(y))"
-    print(__build_skolem_tree(expression))
-	
-def __build_skolem_tree(expression, root=None):
-    universal = __first_universal(expression)
-    print("EXPR: ", expression)
-    if not universal:
-        return {root: __all_existenstials(expression)}
-    else:
+class SkolemRegex:
+    COMMON = r"{0} ((?:\w+, ?)*(?:\w+))\("
+    
+SkolemRegex.ALL = re.compile(SkolemRegex.COMMON.format(LogicOperator.All))
+SkolemRegex.EXISTS = re.compile(SkolemRegex.COMMON.format(LogicOperator.Exists))
+
+
+class Skolemizer:
+    def __init__(self):
+        self.constants = 0
+        self.functions = 0
+        
+    def skolemize(self, expression):
+        tree = self.__build_tree(expression)
+        reversed = self.__reverse_tree(tree)
+        replacements = {}
+        for existentials, parents in reversed.items():
+            vars = existentials.replace(" ", "").split(",")
+            parents.remove(None)
+            universals = ",".join(parents).replace(" ", "").split(",")
+            for var in vars:
+                replacements[var] = self.skolemize_var(var, universals)    
+    
+        expression = re.sub(SkolemRegex.EXISTS, "(", expression)
+        
+        for var, skolemized in replacements.items():
+            regex = r"\b{0}\b".format(var)
+            skolemizer = self.get_replacer(skolemized)
+            expression = re.sub(regex, skolemizer, expression)
+            
+        return expression
+
+    def skolemize_var(self, var, universals):
+        if len(universals) == 1 and len(universals[0]) == 0:
+            self.constants += 1
+            return "SC{0}".format(self.constants)
+        else:
+            self.functions += 1
+            return "SF{0}({1})".format(self.functions, ", ".join(universals))
+    
+    
+    def get_replacer(self, skolemized):
+        def replacer(match):
+            if re.match(SkolemRegex.EXISTS, match.group()):
+                return match.group()
+            return skolemized
+        return replacer
+        
+    
+    def __reverse_tree(self, tree):
+        frontier = [(None, tree[None])]
+        reversed = defaultdict(list)
+        is_parent = {}
+        while len(frontier) > 0:
+            parent, node = frontier.pop(0)
+            for child in node:
+                if isinstance(child, str):
+                    reversed[child] = reversed[parent] + [parent]
+                elif isinstance(child, dict):
+                    child_name = list(child.keys())[0]
+                    if len(child[child_name]) > 0:
+                        frontier.append((child_name, child[child_name]))
+                        reversed[child_name] = reversed[parent] + [parent]
+                elif isinstance(child, list):
+                    for vars in child:
+                        reversed[child] = reversed[parent] + [parent]
+                is_parent[parent] = True                
+                    
+        return {key: value for key, value in reversed.items()
+                if key not in is_parent}
+        
+    def __build_tree(self, expression, root=None):
+        universal = self.__first_universal(expression)
+        if not universal:
+            return {root: self.__all_existenstials(expression)}
+
         left_end = universal.span()[1]
-        right_end = __find_right_index(expression[left_end:])
+        right_end = self.__find_unbalanced(expression[left_end:])
         if not right_end:
             raise ParsingError("Unbalanced parenthesis")
         right_end += left_end
@@ -24,42 +92,34 @@ def __build_skolem_tree(expression, root=None):
         middle = expression[left_end:right_end]
         right = expression[right_end:]
         
-        left_tree = __build_skolem_tree(left, root)
-        middle_tree = __build_skolem_tree(middle, universal.group(1))
-        right_tree = __build_skolem_tree(right, root)
+        left_tree = self.__build_tree(left, root)
+        middle_tree = self.__build_tree(middle, universal.group(1))
+        right_tree = self.__build_tree(right, root)
         return {root: left_tree[root] + [middle_tree] + right_tree[root]}
         
-        
-    print(universal)
-    
-def __find_right_index(expression):
-    braces = 0
-    for index, symbol in enumerate(expression):
-        if symbol == '(':
-            braces += 1
-        elif symbol == ')':
-            braces -= 1
-        if braces == -1:
-            return index
+    def __find_unbalanced(self, expression):
+        braces = 0
+        for index, symbol in enumerate(expression):
+            if symbol == '(':
+                braces += 1
+            elif symbol == ')':
+                braces -= 1
+            if braces == -1:
+                return index
 
-def __first_universal(expression):
-    common_regex = r"{0} ((?:\w+, ?)*(?:\w+))\("
-    uni_regex = common_regex.format(LogicOperator.All)
-    exists_regex = common_regex.format(LogicOperator.Exists)
-    
-    return re.search(uni_regex, expression)
+    def __first_universal(self, expression):
+        return re.search(SkolemRegex.ALL, expression)
 
-def __all_existenstials(expression):
-    common_regex = r"{0} ((?:\w+, ?)*(?:\w+))\("
-    uni_regex = common_regex.format(LogicOperator.All)
-    exists_regex = common_regex.format(LogicOperator.Exists)
-    
-    return re.findall(exists_regex, expression)
-    
+    def __all_existenstials(self, expression):
+        return re.findall(SkolemRegex.EXISTS, expression)
+            
 
+def skolemize(expression, skolemizer=Skolemizer()):
+    return skolemizer.skolemize(expression)
+            
+    
 
 class _StandartizationReplacer:
-
     STANDARDIZE_REGEX = re.compile(r"\b[a-z][a-z0-9]*\b", re.ASCII)
     
     def __init__(self, var, index):
@@ -80,10 +140,8 @@ def standardize_variables(expression, standard_var="x", index=0):
     replacer = _StandartizationReplacer(standard_var, index)
     return re.sub(replacer.STANDARDIZE_REGEX, replacer, expression)
 
-
 def unify(expression1, expression2):
     return __unify_implementation(expression1, expression2, {})
-
 
 def __unify_implementation(x, y, theta):
     if theta == problem.FAILURE: return problem.FAILURE

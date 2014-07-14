@@ -60,8 +60,8 @@ class SearchTest(unittest.TestCase):
                                          graph_file_name, 
                                          start_node, 
                                          end_node, 
-                                         expected_sequences):
-        expected = list(map(self.sequence_to_solution_format, expected_sequences))
+                                         expected_outcomes):
+        expected = list(map(self.sequence_to_solution_format, expected_outcomes))
         has_passed = False
         # Assert all outcomes. If they fail, catch the exceptions and move on.
         # This test passes iff at least one assertion passes
@@ -77,7 +77,7 @@ class SearchTest(unittest.TestCase):
                 pass
             else:
                 has_passed = True
-        self.assertTrue(has_passed, "Nondeterministic test failed for all sequences")
+        self.assertTrue(has_passed, "Nondeterministic test failed for all outcomes")
 
 
     def assert_bulgaria_disconnected(self, search_algorithm):   
