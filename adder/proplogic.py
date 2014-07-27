@@ -1,71 +1,9 @@
 import re
 import itertools
+from functools import partial
 
-from adder import utils
-from adder.logic import Braces
-from adder.logic import LogicOperator
-
-
-class DefiniteClause:
-    def __init__(self, text):
-        self.premises, self.conclusion = self.__parse(text)
-        self.is_fact = len(self.premises) == 0
-
-    def __parse(self, text):
-        if LogicOperator.Implication in text:
-            lhs, rhs = text.split(LogicOperator.Implication)
-
-            premises = {symbol.strip() for symbol in
-                        lhs.split(LogicOperator.Conjuction)}
-            conclusions = [rhs.strip()]
-        else:
-            symbols = [symbol.strip() for symbol in
-                       text.split(LogicOperator.Disjunction)]
-
-            premises = {symbol[1:] for symbol in symbols
-                        if symbol[0] == LogicOperator.Negation}
-            conclusions = [symbol for symbol in symbols
-                           if symbol[0] != LogicOperator.Negation]
-        if len(conclusions) != 1:
-            msg = "A clause must have EXACTLY one positive symbol"
-            raise utils.InvalidArgumentError(msg)
-
-        return (premises, conclusions[0])
-
-    def __str__(self):
-        return "{0} => {1}".format(" & ".join(self.premises), self.conclusion)
-
-    __repr__ = __str__
-
-    def __eq__(self, other):
-        return str(self) == str(other)
-
-    def __neq__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash(str(self))
-
-
-class DefiniteKnowledgeBase:
-    def __init__(self, text=""):
-        self.raw_kb = [DefiniteClause(clause)
-                       for clause in text.strip().split("\n")
-                       if len(clause) != 0]
-
-    def ask(self, query):
-        return backward_chaining(self.raw_kb, query)
-
-    def tell(self, *args):
-        for sentence in args:
-            self.raw_kb.append(DefiniteClause(sentence.strip()))
-
-    def __eq__(self, other):
-        return set(self.raw_kb) == set(other.raw_kb)
-
-    def __neq__(self, other):
-        return not (self == other)
-
+from adder import utils, logic
+from adder.logic import Braces, LogicOperator, DefiniteClause
 
 def forward_chaining(knowledge_base, query):
     premises_count = {clause: len(clause.premises)
@@ -98,7 +36,6 @@ def backward_chaining(knowledge_base, query):
     return __or_step(knowledge_base, query,
                      true_symbols, true_symbols)
 
-
 def __or_step(kb, query, true_symbols, checked):
     if query in true_symbols:
         return True
@@ -119,6 +56,7 @@ def __and_step(kb, true_symbols, checked, implication):
             all = all and is_premise_true
     return all
 
+DefiniteKnowledgeBase = partial(logic.DefiniteKnowledgeBase, backward_chaining)
 
 class KnowledgeBase:
     def __init__(self, text="", max_clause_len=float("inf"),

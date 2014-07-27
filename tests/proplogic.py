@@ -20,19 +20,6 @@ class DefiniteClausesTests(unittest.TestCase):
 
         self.kb = proplogic.DefiniteKnowledgeBase(implications)
 
-    def test_parsing_kb(self):
-        dnf = """A
-                B
-                !L | !M | P
-                !B | !L | M
-                !A | !P | L
-                !A | !B | L
-                !P | Q
-        """
-        
-        parsed_dnf = proplogic.DefiniteKnowledgeBase(dnf)
-        self.assertEqual(parsed_dnf, self.kb)
-
     def test_fc_sample(self):
         q = proplogic.forward_chaining(self.kb.raw_kb, "Q")
         not_q = proplogic.forward_chaining(self.kb.raw_kb, "!Q")
@@ -90,7 +77,7 @@ class CnfConverterTests(unittest.TestCase):
         for formula, cnf in formula_equivalences:
             result = proplogic.parse_sentence_to_cnf(formula)
             result2 = proplogic.parse_sentence_to_cnf(cnf)
-            expected_cnf = [{symbol.strip() for symbol in 
+            expected_cnf = [{symbol.strip() for symbol in
                              conjunct.replace(")", "").replace("(", "").split("|")
                              }
                             for conjunct in cnf.split("&")
@@ -157,7 +144,7 @@ class CnfConverterTests(unittest.TestCase):
 
 class ResolutionProverTests(unittest.TestCase):
     def test_prover_truth(self):
-        # Wumpus sample, aima p.256 
+        # Wumpus sample, aima p.256
         #    (B11 <=> (P12 | P21)) & !B11
         formulae = "(B11 <=> (P12 | P21)) & !B11"
         kb = proplogic.KnowledgeBase(formulae)
@@ -167,19 +154,19 @@ class ResolutionProverTests(unittest.TestCase):
         self.assertTrue(result)
 
     def test_prover_false(self):
-        # Wumpus sample, aima p.256 
+        # Wumpus sample, aima p.256
         formulae = "(B11 <=> (P12 | P21)) & !B11"
         kb = proplogic.KnowledgeBase(formulae)
         query = "P12"
-        
+
         result = kb.ask(query)
         self.assertFalse(result)
 
-        
+
         formulae = "A | B"
         kb = proplogic.KnowledgeBase(formulae, information_rich=False)
         query = "A"
-        
+
         result = kb.ask(query)
         self.assertFalse(result)
 
@@ -205,7 +192,7 @@ class ResolutionProverTests(unittest.TestCase):
             L11_0 => (Stench_0 <=> S11)
             L11_0 => (Breeze_0 <=> B11)
             OK12_0 <=> !P12 & (!W12 | !WumpusAlive_0)
-        """, max_clause_len=3)  
+        """, max_clause_len=3)
 
         self.assertTrue(kb.ask("OK12_0"))
         self.assertFalse(kb.ask("!OK12_0"))
