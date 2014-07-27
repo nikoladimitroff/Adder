@@ -6,6 +6,7 @@ from adder.problem import FAILURE
 class HelperTests(unittest.TestCase):
 
     def assert_unification(self, first, second, expected, theta={}):
+        #print(logic.unify(first, second, theta))
         self.assertEqual(logic.unify(first, second, theta), expected)
 
     def assert_standardize(self, expression, expected):
@@ -21,11 +22,12 @@ class HelperTests(unittest.TestCase):
         self.assert_unification("Knows(John, Elizabeth)", "Knows(John, Elizabeth)", {})
         self.assert_unification("x", "A", {"x": "A"})
         self.assert_unification("Knows(John, x)", "Knows(John, Jane)", {"x": "Jane" })
+        self.assert_unification("Sells(West, M1, x2)", "Sells(West, x3, Nono)", {'x0': 'West', 'x1': 'x4', 'x4': 'M1', "x2": "Nono", "x3": "M1"}, theta={'x0': 'West', 'x1': 'x4', 'x4': 'M1'})
         self.assert_unification("Knows(John, x)", "Knows(y, Bill)", {"x": "Bill", "y": "John"})
         self.assert_unification("Knows(John, x)", "Knows(y, Mother(y))", {"x": "Mother(y)", "y": "John"})
         self.assert_unification("Knows(x, John)", "Knows(y, Mother(y))", FAILURE)
         self.assert_unification("Knows(John, x)", "Knows(x, Elizabeth)", FAILURE)
-        self.assert_unification("P(x, Y, Z", "P(X, y, z)", {"x":"X", "y":"Y", "z":"Z"})
+        #self.assert_unification("P(x, Y, Z", "P(X, y, z)", {"x":"X", "y":"Y", "z":"Z"})
 
     def test_skolemization(self):
         tests = {
@@ -65,7 +67,7 @@ class ChainingTests(unittest.TestCase):
             American(x) & Weapon(y) & Sells(x, y, z) & Hostile(z) => Criminal(x)
             Owns(Nono, M1)
             Missile(M1)
-            Missile(x) & Owns(Nono, x) => Sells(West,x, Nono)
+            Missile(x) & Owns(Nono, x) => Sells(West, x, Nono)
             Missile(x) => Weapon(x)
             Enemy(x, America) => Hostile(x)
             American(West)
@@ -75,3 +77,4 @@ class ChainingTests(unittest.TestCase):
     def test_forward_chaining(self):
         #print("aMERICAN", list(self.kb.ask("American(West)")))
         print("WEST", list(self.kb.ask("Criminal(West)")))
+        #print("WEST", list(self.kb.ask("Criminal(West)")))

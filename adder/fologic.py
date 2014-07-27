@@ -12,7 +12,6 @@ def backward_chaining(kb, query):
 
 def __backward_chaining_or(kb, query, theta):
     print("ORING", query, theta)
-    #theta = dict(theta)
     for implication in __fetch_implications(kb, query):
         premises, conclusion = implication.premises, implication.conclusion
         subst = __backward_chaining_and(kb, premises, unify(query, conclusion, theta))
@@ -33,7 +32,6 @@ def __fetch_implications(kb, query):
 
 def __backward_chaining_and(kb, goals, theta):
     print("ANDING", goals, theta)
-    #theta = dict(theta)
     if theta is problem.FAILURE:
         yield problem.FAILURE
         return

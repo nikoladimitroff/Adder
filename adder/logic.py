@@ -316,7 +316,7 @@ class DefiniteKnowledgeBase:
                        for clause in text.strip().split("\n")
                        if len(clause) != 0]
         self.solver = chaining_solver
-
+        
     def ask(self, query):
         return self.solver(self.raw_kb, query)
 
