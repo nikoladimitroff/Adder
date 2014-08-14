@@ -229,7 +229,7 @@ def standardize_variables(expression, var="x", use_global=True):
     result = re.sub(replacer.REGEX, replacer, expression)
     if use_global:
         StandartizationReplacer.GlobalIndex = replacer.index
-    return result
+    return result, replacer.replacements
 
 
 def substitute(expression, theta):
@@ -237,6 +237,12 @@ def substitute(expression, theta):
         regex = r"\b{0}\b".format(key)
         expression = re.sub(regex, value, expression)
     return expression
+
+def propagate_substitutions(theta):
+    for key, value in theta.items():
+        if value in theta.keys():
+            theta[key] = theta[value]
+
 
 def unify(expression1, expression2, theta=None):
     theta = theta or {}
@@ -279,6 +285,10 @@ def __split_expression(expr):
         return None, None
     return expr[:left_index], expr[left_index + 1:-1].split(", ")
 
+def find_all_variables(expression):
+    return [var for var in __split_expression(expression)[1]
+            if __is_variable(var)]
+
 
 class DefiniteClause:
     ReplacementIndex = 0
@@ -287,8 +297,6 @@ class DefiniteClause:
         self.is_fact = len(self.premises) == 0
 
     def __parse(self, text):
-       # text = standardize_variables(text)
-       # print(text)
         if LogicOperator.Implication in text:
             lhs, rhs = text.split(LogicOperator.Implication)
 

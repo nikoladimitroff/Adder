@@ -9,7 +9,7 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(logic.unify(first, second, theta), expected)
 
     def assert_standardize(self, expression, expected):
-        standart = logic.standardize_variables(expression, use_global=False)
+        standart, var_map = logic.standardize_variables(expression, use_global=False)
         self.assertEqual(standart, expected)
 
     def assert_skolemization(self, expression, expected):
@@ -76,11 +76,13 @@ class ChainingTests(unittest.TestCase):
         self.natKB = fologic.DefiniteKnowledgeBase("""
             Nat(0)
             Nat(x) => Nat(Plus1(x))
-            Plus1(Plus1(x)) => Plus2(x)
-            """)
+        """)
 
-    def test_forward_chaining(self):
-        #print("aMERICAN", list(self.kb.ask("American(West)")))
-        print("WEST", list(self.criminalKB.ask("Criminal(x)")))
-        print("Enemy", list(self.criminalKB.ask("Enemy(x, America)")))
-        print("Nat", list(self.natKB.ask("Nat(Plus1(Plus1(0)))")))
+    def assert_query(self, kb, query, expected):
+        self.assertEqual(kb.ask(query), expected)
+
+    def test_backward_chaining(self):
+        self.assert_query(self.criminalKB, "Criminal(x)", {"x": "West"})
+        self.assert_query(self.criminalKB, "Enemy(x, America)", {"x": "Nono"})
+        self.assert_query(self.natKB, "Nat(Plus1(Plus1(0)))", {})
+        self.assert_query(self.natKB, "Nat(2)", FAILURE)

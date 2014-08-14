@@ -3,51 +3,50 @@ from functools import partial
 from adder import problem, logic
 from adder.logic import Braces, LogicOperator, DefiniteClause, \
                         standardize_variables, skolemize, \
-                        unify, substitute
+                        unify, substitute, propagate_substitutions, \
+                        find_all_variables
 from adder.utils import ParsingError
 
 def backward_chaining(kb, query):
-    query = standardize_variables(query)
-    print("QUERY", query)
-    return __backward_chaining_or(kb, query, {})
+    all_variables = find_all_variables(query)
+    query, var_map = standardize_variables(query)
+    result = __backward_chaining_or(kb, query, {})
+    if result is not problem.FAILURE:
+        propagate_substitutions(result)
+        query_vars = {var: result[var_map[var]] for var in all_variables}
+        return query_vars
+
+    return result
 
 def __backward_chaining_or(kb, query, theta):
-    print("ORING", query, theta)
-    #theta = dict(theta)
     for implication in __fetch_implications(kb, query):
         premises, conclusion = implication.premises, implication.conclusion
         subst = __backward_chaining_and(kb, premises, unify(query, conclusion, theta))
-        yield from subst
+        if subst is not problem.FAILURE:
+            return subst
+    return problem.FAILURE
 
 
 def __fetch_implications(kb, query):
     implications = []
     for implication in kb:
-        if query[0] == "S":
-            print("FING", query, implication.conclusion, unify(query, implication.conclusion))
         subst = unify(query, implication.conclusion)
         if subst != problem.FAILURE:
             implication.standardize()
             implications.append(implication)
 
-    print("fetched", query, implications)
     return implications
 
 def __backward_chaining_and(kb, goals, theta):
-    print("ANDING", goals, theta)
-    #theta = dict(theta)
     if theta is problem.FAILURE:
-        yield problem.FAILURE
-        return
+        return problem.FAILURE
     if len(goals) == 0:
-        yield theta
-        return
-    if len(goals) == 1:
-        yield from __backward_chaining_or(kb, substitute(goals[0], theta), theta)
+        return theta
 
-    first, rest = goals[0], goals[1:]
-    for subst1 in __backward_chaining_or(kb, substitute(first, theta), theta):
-        for subst2 in __backward_chaining_and(kb, rest, subst1):
-            yield subst2
+    subst = theta
+    for goal in goals:
+        subst = __backward_chaining_or(kb, substitute(goal, subst), subst)
+
+    return subst
 
 DefiniteKnowledgeBase = partial(logic.DefiniteKnowledgeBase, backward_chaining)
