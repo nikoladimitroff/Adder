@@ -11,6 +11,9 @@ __pycache__/
 *.pyperf
 *.suo
 
+# Vim
+.*.swp
+
 # Coverage generated
 *,cover
 

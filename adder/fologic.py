@@ -8,6 +8,7 @@ from adder.utils import ParsingError
 
 def backward_chaining(kb, query):
     query = standardize_variables(query)
+    print("QUERY", query)
     return __backward_chaining_or(kb, query, {})
 
 def __backward_chaining_or(kb, query, theta):
@@ -26,6 +27,7 @@ def __fetch_implications(kb, query):
             print("FING", query, implication.conclusion, unify(query, implication.conclusion))
         subst = unify(query, implication.conclusion)
         if subst != problem.FAILURE:
+            implication.standardize()
             implications.append(implication)
 
     print("fetched", query, implications)
@@ -49,5 +51,3 @@ def __backward_chaining_and(kb, goals, theta):
             yield subst2
 
 DefiniteKnowledgeBase = partial(logic.DefiniteKnowledgeBase, backward_chaining)
-
-

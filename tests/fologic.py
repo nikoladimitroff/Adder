@@ -9,7 +9,7 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(logic.unify(first, second, theta), expected)
 
     def assert_standardize(self, expression, expected):
-        standart = logic.standardize_variables(expression, index={"index":0})
+        standart = logic.standardize_variables(expression, use_global=False)
         self.assertEqual(standart, expected)
 
     def assert_skolemization(self, expression, expected):
@@ -25,7 +25,8 @@ class HelperTests(unittest.TestCase):
         self.assert_unification("Knows(John, x)", "Knows(y, Mother(y))", {"x": "Mother(y)", "y": "John"})
         self.assert_unification("Knows(x, John)", "Knows(y, Mother(y))", FAILURE)
         self.assert_unification("Knows(John, x)", "Knows(x, Elizabeth)", FAILURE)
-        self.assert_unification("P(x, Y, Z", "P(X, y, z)", {"x":"X", "y":"Y", "z":"Z"})
+        self.assert_unification("P(x, Y, Z)", "P(X, y, z)", {"x":"X", "y":"Y", "z":"Z"})
+        #self.assert_unification("Sells(West, M1, x2)", "Sells(x, 2M1, Nono)", {},
 
     def test_skolemization(self):
         tests = {
@@ -61,17 +62,25 @@ class ChainingTests(unittest.TestCase):
 
     def __init__(self, *args):
         unittest.TestCase.__init__(self, *args)
-        self.kb = fologic.DefiniteKnowledgeBase("""
+        self.criminalKB = fologic.DefiniteKnowledgeBase("""
             American(x) & Weapon(y) & Sells(x, y, z) & Hostile(z) => Criminal(x)
             Owns(Nono, M1)
             Missile(M1)
-            Missile(x) & Owns(Nono, x) => Sells(West,x, Nono)
+            Missile(x) & Owns(Nono, x) => Sells(West, x, Nono)
             Missile(x) => Weapon(x)
             Enemy(x, America) => Hostile(x)
             American(West)
             Enemy(Nono, America)
+        """)
+
+        self.natKB = fologic.DefiniteKnowledgeBase("""
+            Nat(0)
+            Nat(x) => Nat(Plus1(x))
+            Plus1(Plus1(x)) => Plus2(x)
             """)
 
     def test_forward_chaining(self):
         #print("aMERICAN", list(self.kb.ask("American(West)")))
-        print("WEST", list(self.kb.ask("Criminal(West)")))
+        print("WEST", list(self.criminalKB.ask("Criminal(x)")))
+        print("Enemy", list(self.criminalKB.ask("Enemy(x, America)")))
+        print("Nat", list(self.natKB.ask("Nat(Plus1(Plus1(0)))")))

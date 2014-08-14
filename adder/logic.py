@@ -207,11 +207,12 @@ def skolemize(expression, skolemizer=Skolemizer()):
 
 
 class StandartizationReplacer:
-    STANDARDIZE_REGEX = re.compile(r"\b[a-z][a-z0-9]*\b", re.ASCII)
+    REGEX = re.compile(r"\b[a-z][a-z0-9]*\b", re.ASCII)
+    GlobalIndex = 0
 
-    def __init__(self, var, index):
+    def __init__(self, var, use_global=True):
         self.var = var
-        self.index = index
+        self.index = self.GlobalIndex if use_global else 0
         self.replacements = {}
 
     def __call__(self, match):
@@ -223,10 +224,13 @@ class StandartizationReplacer:
         return self.replacements[result]
 
 
-def standardize_variables(expression, var="x", index={"index":0}):
-    replacer=StandartizationReplacer(var, index["index"])
-    index["index"] += 1
-    return re.sub(replacer.STANDARDIZE_REGEX, replacer, expression)
+def standardize_variables(expression, var="x", use_global=True):
+    replacer=StandartizationReplacer(var, use_global)
+    result = re.sub(replacer.REGEX, replacer, expression)
+    if use_global:
+        StandartizationReplacer.GlobalIndex = replacer.index
+    return result
+
 
 def substitute(expression, theta):
     for key, value in theta.items():
@@ -277,13 +281,14 @@ def __split_expression(expr):
 
 
 class DefiniteClause:
+    ReplacementIndex = 0
     def __init__(self, text):
         self.premises, self.conclusion = self.__parse(text)
         self.is_fact = len(self.premises) == 0
 
     def __parse(self, text):
-        text = standardize_variables(text)
-        print(text)
+       # text = standardize_variables(text)
+       # print(text)
         if LogicOperator.Implication in text:
             lhs, rhs = text.split(LogicOperator.Implication)
 
@@ -303,6 +308,14 @@ class DefiniteClause:
             raise utils.InvalidArgumentError(msg)
 
         return (premises, conclusions[0])
+
+    def standardize(self, var="x"):
+        replacer=StandartizationReplacer(var)
+        for index, premise in enumerate(self.premises):
+            self.premises[index] = re.sub(replacer.REGEX, replacer, premise)
+        self.conclusion = re.sub(replacer.REGEX, replacer, self.conclusion)
+
+        StandartizationReplacer.GlobalIndex = replacer.index
 
     def __str__(self):
         return "{0} => {1}".format(" & ".join(self.premises), self.conclusion)
