@@ -1,30 +1,1 @@
-# Adder
-### An AI library in Python
----------
-## Purpose
-Adder is meant to be a developer-friendly and easy-to-learn library that provides implementations of many AI algorithms (and a few other that ease working with graphs and trees in general). For a complete list of the algorithms and some pseudocode, check out the *[algorithms page][algos]*.
-
-## Development log
-Here's a short list of thingies that should be implemented before the 2nd of June (**PPL FROM FMI.PY-BG.NET LOOK HERE**):
-
-* At least 5 moderately sized graphs for testing purposes
-* At least 2 instances of the other problems used for testing (such as n-queens)
-* Implementation and tests of Graphs, Digraphs and utilities for loading graphs from files / strings
-* Implementation and tests of the classical search algorithms: 
- * Graph Traversal (breadth-first, depth-first)
- * BFS
- * DFS
- * Depth-limited search
- * Iterative deepening DFS
- * Bidirectional search
- * A Star (perhaps some of its variations such as MBA*)
-* Implementation and tests of some advanced algorithms: 
- * Simulated Annealing
- * Hill Climbing
- * Local beam
- * Genetics
-* Implementation and tests of theorem proving and model checking for classical propositonal logic for decision making
-* [if time is enough] Implementation and tests of several utilities that may come in handy - reachability relation, space partitioning
-* [if time is enough] Documentation
-
-[algos]: algorithms.md
+# Adder### An AI library in Python---------## PurposeAdder is meant to be a developer-friendly and easy-to-learn library that provides implementations of many AI algorithms (and a few other that ease working with graphs and trees in general).## Development logHere's where the library currently stands:* Utilities for defining various models of problems (from graph, from a set of functions, etc.)* Algorithms for classical searching: * BFS, DFS * Depth-limited search, Iterative Deepening Search * A\** Algorithms for nonclassical searching: * Hill climbing, Random-restart * Simulated Annealing * Genetics* Classical Propositional Logic: * Parsing sentences into formulas in Conjunctive Normal Form (thus having a human-readable representation of the knowledge base) * Forward and backwards chaining on Definite Knowledge Bases * Theorem proving in random Propositional Knowledge Bases with several optimizations* Classical First-Order Logic: * Backwards chaining for Definite Knowledge Bases## DemosCurrently, there are several demos you can play with. Run them with ```pythonpython main.py <demo-name> [<demo-args>]```where```<demo-name> = snake | picture | definitekb | resolutionkb<demo-args> = <snake-field-size> <snake-obstacles-count> | one of the three - winnie toucan eagle | no args | no args```## Upcoming features* Classical First-Order Logic: * Theorem proving in random First-Order Knowledge Bases* Semantic Networks* Planning using Angelic Search and Graphplan* Wiki and documentation
