@@ -93,6 +93,7 @@ class Braces:
 
         return text
 
+
 class SkolemRegex:
     COMMON = r"{0} ((?:\w+, ?)*(?:\w+))\("
 
@@ -205,7 +206,6 @@ def skolemize(expression, skolemizer=Skolemizer()):
     return skolemizer.skolemize(expression)
 
 
-
 class StandartizationReplacer:
     REGEX = re.compile(r"\b[a-z][a-z0-9]*\b", re.ASCII)
     GlobalIndex = 0
@@ -238,6 +238,7 @@ def substitute(expression, theta):
         expression = re.sub(regex, value, expression)
     return expression
 
+
 def propagate_substitutions(theta):
     for key, value in theta.items():
         if value in theta.keys():
@@ -247,6 +248,7 @@ def propagate_substitutions(theta):
 def unify(expression1, expression2, theta=None):
     theta = theta or {}
     return __unify_implementation(expression1, expression2, theta)
+
 
 def __unify_implementation(x, y, theta):
     if theta == problem.FAILURE: return problem.FAILURE
@@ -270,6 +272,7 @@ def __unify_implementation(x, y, theta):
 def __is_variable(expression):
     return isinstance(expression, str) and expression[0].islower()
 
+
 def __unify_variable(var, expression, theta):
     if var in theta:
         substitution = theta[var]
@@ -278,12 +281,14 @@ def __unify_variable(var, expression, theta):
     theta[var] = expression
     return theta
 
+
 def __split_expression(expr):
     expr = expr.strip()
     left_index = expr.find(Braces.Left)
     if left_index == -1:
         return None, None
     return expr[:left_index], expr[left_index + 1:-1].split(", ")
+
 
 def find_all_variables(expression):
     return [var for var in __split_expression(expression)[1]
@@ -292,6 +297,7 @@ def find_all_variables(expression):
 
 class DefiniteClause:
     ReplacementIndex = 0
+
     def __init__(self, text):
         self.premises, self.conclusion = self.__parse(text)
         self.is_fact = len(self.premises) == 0

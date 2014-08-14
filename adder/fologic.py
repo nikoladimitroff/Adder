@@ -18,12 +18,14 @@ def backward_chaining(kb, query):
 
     return result
 
+
 def __backward_chaining_or(kb, query, theta):
     for implication in __fetch_implications(kb, query):
         premises, conclusion = implication.premises, implication.conclusion
         subst = __backward_chaining_and(kb, premises, unify(query, conclusion, theta))
         if subst is not problem.FAILURE:
             return subst
+
     return problem.FAILURE
 
 
@@ -37,16 +39,17 @@ def __fetch_implications(kb, query):
 
     return implications
 
+
 def __backward_chaining_and(kb, goals, theta):
     if theta is problem.FAILURE:
         return problem.FAILURE
     if len(goals) == 0:
         return theta
 
-    subst = theta
     for goal in goals:
-        subst = __backward_chaining_or(kb, substitute(goal, subst), subst)
+        theta = __backward_chaining_or(kb, substitute(goal, theta), theta)
 
-    return subst
+    return theta
+
 
 DefiniteKnowledgeBase = partial(logic.DefiniteKnowledgeBase, backward_chaining)

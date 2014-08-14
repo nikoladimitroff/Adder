@@ -4,7 +4,6 @@ from adder import logic, fologic
 from adder.problem import FAILURE
 
 class HelperTests(unittest.TestCase):
-
     def assert_unification(self, first, second, expected, theta={}):
         self.assertEqual(logic.unify(first, second, theta), expected)
 
@@ -59,7 +58,6 @@ class HelperTests(unittest.TestCase):
 
 
 class ChainingTests(unittest.TestCase):
-
     def __init__(self, *args):
         unittest.TestCase.__init__(self, *args)
         self.criminalKB = fologic.DefiniteKnowledgeBase("""
