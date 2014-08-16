@@ -27,7 +27,8 @@ class HelperTests(unittest.TestCase):
         self.assert_unification("Knows(x, John)", "Knows(y, Mother(y))", FAILURE)
         self.assert_unification("Knows(John, x)", "Knows(x, Elizabeth)", FAILURE)
         self.assert_unification("P(x, Y, Z)", "P(X, y, z)", {"x":"X", "y":"Y", "z":"Z"})
-        #self.assert_unification("Sells(West, M1, x2)", "Sells(x, 2M1, Nono)", {},
+        self.assert_unification("Sells(West, M1, x)", "Sells(y, M1, Nono)",
+                                {"x": "Nono", "y": "West"})
 
     def test_skolemization(self):
         tests = {
@@ -78,6 +79,14 @@ class ChainingTests(unittest.TestCase):
             Nat(x) => Nat(Plus1(x))
         """)
 
+        self.equalsKB = fologic.DefiniteKnowledgeBase("""
+            =(Turing, Klenee)
+            =(Klenee, Church)
+            =(x, x)
+            =(x, y) & =(y, z) => =(x, z)
+            =(x, y) => =(y, x)
+        """)
+
     def assert_query(self, kb, query, expected):
         self.assertEqual(kb.ask(query), expected)
 
@@ -86,3 +95,6 @@ class ChainingTests(unittest.TestCase):
         self.assert_query(self.criminalKB, "Enemy(x, America)", {"x": "Nono"})
         self.assert_query(self.natKB, "Nat(Plus1(Plus1(0)))", {})
         self.assert_query(self.natKB, "Nat(2)", FAILURE)
+        self.assert_query(self.equalsKB, "=(Turing, Church)", {})
+        self.assert_query(self.equalsKB, "=(Church, Turing)", {})
+        self.assert_query(self.equalsKB, "=(Turing, Turing)", {})

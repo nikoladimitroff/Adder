@@ -278,6 +278,7 @@ def __unify_variable(var, expression, theta):
         substitution = theta[var]
         return __unify_implementation(expression, substitution, theta)
 
+    # Skip occur-check
     theta[var] = expression
     return theta
 
@@ -343,7 +344,7 @@ class DefiniteKnowledgeBase:
                        for clause in text.strip().split("\n")
                        if len(clause) != 0]
         self.solver = chaining_solver
-        
+
     def ask(self, query):
         return self.solver(self.raw_kb, query)
 

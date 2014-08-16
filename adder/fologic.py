@@ -36,7 +36,6 @@ def __fetch_implications(kb, query):
         if subst != problem.FAILURE:
             implication.standardize()
             implications.append(implication)
-
     return implications
 
 
