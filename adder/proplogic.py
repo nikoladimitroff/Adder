@@ -3,7 +3,9 @@ import itertools
 from functools import partial
 
 from adder import utils, logic
-from adder.logic import Braces, LogicOperator, DefiniteClause
+from adder.logic import Braces, LogicOperator, DefiniteClause, SkolemRegex, skolemize
+from adder.cnfparser import parse_propositional_sentence as parse_cnf, \
+                            is_disjunction_tautology
 
 def forward_chaining(knowledge_base, query):
     premises_count = {clause: len(clause.premises)
@@ -72,7 +74,7 @@ class KnowledgeBase:
 
     def tell(self, *args):
         for sentence in args:
-            self.raw_kb += parse_sentence_to_cnf(sentence.strip())
+            self.raw_kb += parse_cnf(sentence.strip())
 
     def __eq__(self, other):
         return set(self.raw_kb) == set(other.raw_kb)
@@ -83,12 +85,12 @@ class KnowledgeBase:
 
 def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
     negated_query = "{0}({1})".format(LogicOperator.Negation, query)
-    not_query_cnf = parse_sentence_to_cnf(negated_query)
+    not_query_cnf = parse_cnf(negated_query)
     clauses = not_query_cnf + knowledge_base
     new_inferrences = set()
     already_resolved = set()
 
-    clauses2 = parse_sentence_to_cnf(query) + knowledge_base
+    clauses2 = parse_cnf(query) + knowledge_base
     new_inferrences2 = set()
     already_resolved2 = set()
 
@@ -137,7 +139,7 @@ def __resolve(first_clause, second_clause, max_len):
     __resolve_single_sided(first_clause, second_clause, resolvents)
     __resolve_single_sided(second_clause, first_clause, resolvents)
     return [r for r in resolvents
-            if len(r) < max_len and not __is_tautology(r)]
+            if len(r) < max_len and not is_disjunction_tautology(r)]
 
 
 def __resolve_single_sided(c1, c2, resolvents):
@@ -150,191 +152,4 @@ def __resolve_single_sided(c1, c2, resolvents):
 def parse_knowledge_base(text):
     return [clause
             for sentence in text.strip().split("\n")
-            for clause in parse_sentence_to_cnf(sentence)]
-
-
-def parse_sentence_to_cnf(sentence):
-    cnf = Braces.flatten(__convert_to_cnf(sentence))
-
-    clauses = set()
-    for disjunct_text in cnf.split(LogicOperator.Conjuction):
-        left_replaced = disjunct_text.replace(Braces.Left, "")
-        disjunct_text = left_replaced.replace(Braces.Right, "")
-        if len(disjunct_text) == 0:
-            continue
-
-        disjunct = frozenset(symbol.strip() for symbol in
-                             disjunct_text.split(LogicOperator.Disjunction))
-
-        if not __is_tautology(disjunct):
-            clauses.add(disjunct)
-
-    return __clean_clauses(clauses)
-
-
-def __is_tautology(disjunct):
-    for symbol in disjunct:
-        if LogicOperator.Negation + symbol in disjunct:
-            return True
-    return False
-
-
-def __clean_clauses(clauses):
-    result = []
-    for clause in clauses:
-        is_superset_of_another = any(conjuct < clause for conjuct in clauses)
-        if not is_superset_of_another:
-            result.append(clause)
-
-    return result
-
-
-def __equivalence_cnf(operands):
-    lhs, rhs = operands
-    cnf = __convert_to_cnf("({2}{0} {3} {1}) {4} ({2}{1} {3} {0})"
-                           .format(lhs, rhs,
-                                   LogicOperator.Negation,
-                                   LogicOperator.Disjunction,
-                                   LogicOperator.Conjuction))
-    return cnf
-
-
-def __implication_cnf(operands):
-    lhs, rhs = operands
-    cnf = __convert_to_cnf("{2}{0} {3} {1}".format(lhs, rhs,
-                                                   LogicOperator.Negation,
-                                                   LogicOperator.Disjunction))
-    return cnf
-
-
-def __disjunction_cnf(operands):
-    lhs, rhs = operands
-    first = __convert_to_cnf(lhs).split(LogicOperator.Conjuction)
-    second = __convert_to_cnf(rhs).split(LogicOperator.Conjuction)
-    cnf = ""
-    for clause1 in first:
-        for clause2 in second:
-            cnf += "({0} {2} {1}) {3} ".format(clause1, clause2,
-                                               LogicOperator.Disjunction,
-                                               LogicOperator.Conjuction)
-
-    return cnf[:-2]
-
-
-def __conjuction_cnf(operands):
-    lhs, rhs = operands
-    cnf = "{0} {2} {1}".format(__convert_to_cnf(lhs),
-                               __convert_to_cnf(rhs),
-                               LogicOperator.Conjuction)
-    return cnf
-
-
-def __negation_cnf(operands):
-    tail = Braces.remove_surrounding(operands[0])
-    if __is_var(tail):
-        return LogicOperator.Negation + tail
-
-    tail_operation = parse_sentence(tail)
-    operator = tail_operation[0]
-    tail_operands = tail_operation[1:]
-    rewritten_formula = ""
-    if operator == LogicOperator.Negation:
-        rewritten_formula = tail_operands[0]
-    elif operator == LogicOperator.Conjuction:
-        lhs, rhs = tail_operands
-        pattern = "{2}{0} {3} {2}{1}"
-        rewritten_formula = pattern.format(lhs, rhs,
-                                           LogicOperator.Negation,
-                                           LogicOperator.Disjunction)
-    elif operator == LogicOperator.Disjunction:
-        lhs, rhs = tail_operands
-        pattern = "{2}{0} {3} {2}{1}"
-        rewritten_formula = pattern.format(lhs, rhs,
-                                           LogicOperator.Negation,
-                                           LogicOperator.Conjuction)
-    else:
-        rewritten_formula = "{0}({1})".format(LogicOperator.Negation,
-                                              __convert_to_cnf(tail))
-
-    return __convert_to_cnf(rewritten_formula)
-
-__OPERATOR_PARSERS = {
-    LogicOperator.Equivalence: __equivalence_cnf,
-    LogicOperator.Implication: __implication_cnf,
-    LogicOperator.Disjunction: __disjunction_cnf,
-    LogicOperator.Conjuction: __conjuction_cnf,
-    LogicOperator.Negation: __negation_cnf
-}
-
-
-def __convert_to_cnf(sentence):
-    if __is_var(sentence):
-        return sentence
-
-    parsed = parse_sentence(sentence)
-    result = __OPERATOR_PARSERS[parsed[0]](parsed[1:])
-    return result
-
-
-def __is_var(sentence):
-    return not (LogicOperator.Negation in sentence or
-                LogicOperator.Conjuction in sentence or
-                LogicOperator.Disjunction in sentence or
-                LogicOperator.Implication in sentence or
-                LogicOperator.Equivalence in sentence)
-
-
-def parse_sentence(sentence):
-    sentence = Braces.remove_surrounding(sentence.strip())
-    replaced = Braces.replace(sentence)
-    operator = __get_operator(replaced[0])
-    operands = __get_operands(replaced, operator)
-
-    if not operands:
-        msg = "Could not parse sentence '{0}'".format(sentence)
-        raise utils.ParsingError(msg)
-
-    return (operator, ) + operands
-
-
-def __get_operator(replaced_sentence):
-    operator_precedence = [
-        LogicOperator.Equivalence,
-        LogicOperator.Implication,
-        LogicOperator.Disjunction,
-        LogicOperator.Conjuction,
-        LogicOperator.Negation
-    ]
-
-    for operator in operator_precedence:
-        if operator in replaced_sentence:
-            return operator
-
-
-def __get_operands(replaced_sentence, operator):
-    text, replacements = replaced_sentence
-
-    if operator is None:
-        return False
-
-    if operator == LogicOperator.Negation:
-        sentence = Braces.restore(text, replacements)
-        if sentence[0] == operator:
-            return (sentence[1:], )
-        return False
-
-    lhs, rhs = text.split(" {0} ".format(operator), maxsplit=1)
-    separator = "!SEPARATOR!"
-    separated = "{0} {1} {2}".format(lhs, separator, rhs)
-    lhs, rhs = Braces.restore(separated, replacements).split(separator)
-    return (lhs.strip(), rhs.strip())
-
-
-def print_cnf_clause(clause):
-    if isinstance(clause, frozenset):
-        printable = " | ".join(sorted(clause))
-    else:
-        formula = ") & (".join([" | ".join(disjunct) for disjunct in clause])
-        printable = "({0})".format(formula)
-
-    print(printable)
+            for clause in parse_cnf(sentence)]

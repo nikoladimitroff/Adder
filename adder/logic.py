@@ -11,8 +11,16 @@ class LogicOperator:
     Negation = "!"
     Implication = "=>"
     Equivalence = "<=>"
-    All = "V"
+    Every = "V"
     Exists = "E"
+
+LogicOperator.All = [
+    LogicOperator.Equivalence,
+    LogicOperator.Implication,
+    LogicOperator.Disjunction,
+    LogicOperator.Conjuction,
+    LogicOperator.Negation
+]
 
 
 class Braces:
@@ -22,8 +30,9 @@ class Braces:
 
     @staticmethod
     def remove_surrounding(sentence):
-        if sentence[0] == Braces.Left and \
-           sentence[-1] == Braces.Right:
+        while sentence[0] == Braces.Left and \
+              sentence[-1] == Braces.Right:
+
             braces = 1
             for symbol in sentence[1:-1]:
                 if symbol == Braces.Left:
@@ -32,24 +41,35 @@ class Braces:
                     braces -= 1
                 if braces == 0:
                     return sentence
-            return sentence[1:-1]
+            sentence = sentence[1:-1]
         return sentence
 
     @staticmethod
     def flatten(text):
         tlb = False
+        fo_symbol = False
         braces = 0
         result = ""
-        for symbol in text:
+        for index, symbol in enumerate(text):
             if symbol == Braces.Left:
-                if braces == 0:
+                next_right = text[index:].index(Braces.Right)
+                between_braces = text[index: index + next_right + 1]
+                contains_operator = any(op in between_braces
+                                        for op in LogicOperator.All)
+                fo_symbol = not contains_operator
+                if not fo_symbol and braces == 0:
                     tlb = True
+                if fo_symbol or tlb:
                     result += Braces.Left
                 braces += 1
             elif symbol == Braces.Right:
                 braces -= 1
                 if braces == 0:
-                    tlb = False
+                    if fo_symbol:
+                        fo_symbol = False
+                    else:
+                        tlb = False
+                if braces == 0 or fo_symbol:
                     result += Braces.Right
             else:
                 result += symbol
@@ -93,11 +113,24 @@ class Braces:
 
         return text
 
+    @staticmethod
+    def find_unbalanced_right( expression):
+        braces = 0
+        for index, symbol in enumerate(expression):
+            if symbol == '(':
+                braces += 1
+            elif symbol == ')':
+                braces -= 1
+            if braces == -1:
+                return index
+
+
+
 
 class SkolemRegex:
     COMMON = r"{0} ((?:\w+, ?)*(?:\w+))\("
 
-SkolemRegex.ALL = re.compile(SkolemRegex.COMMON.format(LogicOperator.All))
+SkolemRegex.EVERY = re.compile(SkolemRegex.COMMON.format(LogicOperator.Every))
 SkolemRegex.EXISTS = re.compile(SkolemRegex.COMMON.format(LogicOperator.Exists))
 
 
@@ -171,7 +204,7 @@ class Skolemizer:
             return {root: self.__all_existenstials(expression)}
 
         left_end = universal.span()[1]
-        right_end = self.__find_unbalanced(expression[left_end:])
+        right_end = Braces.find_unbalanced_right(expression[left_end:])
         if not right_end:
             raise ParsingError("Unbalanced parenthesis")
         right_end += left_end
@@ -185,18 +218,8 @@ class Skolemizer:
         right_tree = self.__build_tree(right, root)
         return {root: left_tree[root] + [middle_tree] + right_tree[root]}
 
-    def __find_unbalanced(self, expression):
-        braces = 0
-        for index, symbol in enumerate(expression):
-            if symbol == '(':
-                braces += 1
-            elif symbol == ')':
-                braces -= 1
-            if braces == -1:
-                return index
-
     def __first_universal(self, expression):
-        return re.search(SkolemRegex.ALL, expression)
+        return re.search(SkolemRegex.EVERY, expression)
 
     def __all_existenstials(self, expression):
         return re.findall(SkolemRegex.EXISTS, expression)
@@ -241,8 +264,9 @@ def substitute(expression, theta):
 
 def propagate_substitutions(theta):
     for key, value in theta.items():
-        if value in theta.keys():
-            theta[key] = theta[value]
+        for var in theta:
+            regex = r"\b{0}\b".format(var)
+            theta[key] = re.sub(regex, theta[var], theta[key])
 
 
 def unify(expression1, expression2, theta=None):
@@ -275,8 +299,9 @@ def __is_variable(expression):
 
 def __unify_variable(var, expression, theta):
     if var in theta:
-        substitution = theta[var]
-        return __unify_implementation(expression, substitution, theta)
+        return __unify_implementation(expression, theta[var], theta)
+    if expression in theta:
+        return __unify_implementation(var, theta[expression], theta)
 
     # Skip occur-check
     theta[var] = expression
@@ -288,8 +313,12 @@ def __split_expression(expr):
     left_index = expr.find(Braces.Left)
     if left_index == -1:
         return None, None
-    return expr[:left_index], expr[left_index + 1:-1].split(", ")
-
+    replaced, table = Braces.replace(expr[left_index + 1: -1])
+    separator = "!SEPARATOR!"
+    replaced = Braces.restore(replaced.replace(", ", separator), table)
+    function = expr[:left_index]
+    args = replaced.split(separator)
+    return function, args
 
 def find_all_variables(expression):
     return [var for var in __split_expression(expression)[1]

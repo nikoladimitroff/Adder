@@ -1,6 +1,6 @@
 import unittest
 
-from adder import logic, fologic
+from adder import logic, fologic, proplogic, cnfparser
 from adder.problem import FAILURE
 
 class HelperTests(unittest.TestCase):
@@ -29,6 +29,9 @@ class HelperTests(unittest.TestCase):
         self.assert_unification("P(x, Y, Z)", "P(X, y, z)", {"x":"X", "y":"Y", "z":"Z"})
         self.assert_unification("Sells(West, M1, x)", "Sells(y, M1, Nono)",
                                 {"x": "Nono", "y": "West"})
+        self.assert_unification("F(u, G(v, T(x, y), z), p)",
+                                "F(U, G(V, T(X, Y), Z), P)",
+                                {var: var.upper() for var in list("uvxyzp")})
 
     def test_skolemization(self):
         tests = {
@@ -57,7 +60,7 @@ class HelperTests(unittest.TestCase):
             self.assert_skolemization(expression, expected)
 
     def test_standardize(self):
-        self.assert_standardize("V x: E y: P(x) & Q(y)", "V x0: E x1: P(x0) & Q(x1)")
+        self.assert_standardize("V x(E y(P(x) & Q(y)))", "V x0(E x1(P(x0) & Q(x1)))")
 
 
 class ChainingTests(unittest.TestCase):
@@ -80,12 +83,12 @@ class ChainingTests(unittest.TestCase):
         """)
 
         self.equalsKB = fologic.DefiniteKnowledgeBase("""
-            =(Turing, Klenee)
-            =(Klenee, Church)
             =(x, x)
             =(x, y) & =(y, z) => =(x, z)
             =(x, y) => =(y, x)
-        """)
+            =(Turing, Klenee)
+            =(Klenee, Church)
+         """)
 
     def assert_query(self, kb, query, expected):
         self.assertEqual(kb.ask(query), expected)
@@ -98,3 +101,16 @@ class ChainingTests(unittest.TestCase):
         self.assert_query(self.equalsKB, "=(Turing, Church)", {})
         self.assert_query(self.equalsKB, "=(Church, Turing)", {})
         self.assert_query(self.equalsKB, "=(Turing, Turing)", {})
+
+
+class CnfTests(unittest.TestCase):
+    def assert_cnf(self, sentence, expected):
+        self.assertEqual(cnfparser.parse_fo_sentence(sentence), expected)
+
+    def test_cnf(self):
+        pass
+        #print(cnfparser.parse_fo_sentence("V x(V y(Animal(y) => Loves(x,y)) & E z(Loves(z, x)))"))
+        #print(cnfparser.parse_fo_sentence("!V x, z(E y(P(x, y) & Q(z)))"))
+        #print(cnfparser.parse_fo_sentence("Q(x, y) <=> P(y, x)"))
+        #print(cnfparser.parse_fo_sentence("=(+(1, 2), +(3, 4)) => =(3, 7)"))
+        #print(cnfparser.parse_fo_sentence("Q <=> P"))

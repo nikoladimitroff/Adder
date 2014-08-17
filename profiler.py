@@ -8,9 +8,9 @@ def profileWumpus():
     size = 2
     agent = wumpus.HybridAgent(size)
     world = wumpus.World(size, agent)
-    
+
     iterations = 1
-    
+
     percept = world.update(None)
 
     profiler = cProfile.Profile()
@@ -30,7 +30,7 @@ def profileWumpus():
     print(s.getvalue())
 
 def profileKB():
-    
+
     pl_kb = proplogic.KnowledgeBase("""
         Ucha_FMI <=> (Matematik | Programist)
         Matematik => (Znam_DIS & !Znam_Asembler)
@@ -49,7 +49,7 @@ def profileKB():
 
     pl_kb.tell("Znam_Python")
     pl_kb.tell("Znam_C")
-    
+
     profiler = cProfile.Profile()
     profiler.enable()
     print(pl_kb.ask("!Ucha_FMI"))
@@ -62,18 +62,25 @@ def profileKB():
     ps.print_stats()
     print(s.getvalue())
 
+def profile_fo_definite_kb():
+    kb = fologic.DefiniteKnowledgeBase("""
+
+
+    """)
+
+    kb.ask()
 
 def profile():
     import sys
     sys.argv = ["profiler.py", "snake", "10"]
 
-    
+
     profiler = cProfile.Profile()
     profiler.enable()
 
     import demos.snake
 
-    
+
     profiler.disable()
 
     s = io.StringIO()

@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from adder import proplogic, utils
+from adder import proplogic, utils, cnfparser
 
 import tests.config as config
 
@@ -75,8 +75,8 @@ class CnfConverterTests(unittest.TestCase):
         ]
 
         for formula, cnf in formula_equivalences:
-            result = proplogic.parse_sentence_to_cnf(formula)
-            result2 = proplogic.parse_sentence_to_cnf(cnf)
+            result = cnfparser.parse_propositional_sentence(formula)
+            result2 = cnfparser.parse_propositional_sentence(cnf)
             expected_cnf = [{symbol.strip() for symbol in
                              conjunct.replace(")", "").replace("(", "").split("|")
                              }
@@ -93,40 +93,6 @@ class CnfConverterTests(unittest.TestCase):
         self.assertEqual(from_general, from_cnfs)
         self.assertFalse(from_general != from_cnfs)
 
-    def test_is_operator(self):
-        formula_equivalences = [
-            ("(A <=> B) => ((A => B) & (B => A))", "=>"),
-            ("(P | !Q) | (R & S) | (Q & R & !S)", "|"),
-            ('!(P12 | P21) | B11', "|"),
-            ("A => B & C => B", "=>"),
-            ("(A => B) <=> (C => B)", "<=>"),
-            ("!(A => B <=> (C => B))", "!")
-        ]
-
-        for formula, operator in formula_equivalences:
-            parsed = proplogic.parse_sentence(formula)
-            result_operator = parsed[0]
-            msg = "{}/{}".format(formula, operator)
-            self.assertEqual(result_operator, operator, msg=msg)
-
-    def test_is_not_operator(self):
-        formula_lies = [
-            ("(A <=> B) => ((A => B) & (B => A))", "&"),
-            ("(A <=> B) => ((A => B) & (B => A))", "<=>"),
-            ("(P & !Q) | (R & S) | (Q & R & !S)", "!"),
-            ("(A => B) <=> (C => B)", "=>")
-        ]
-        for formula, operator in formula_lies:
-            parsed = proplogic.parse_sentence(formula)
-            result_operator = parsed[0]
-            msg = "{}/{}".format(formula, operator)
-            self.assertNotEqual(result_operator, operator, msg=msg)
-
-
-    def test_invalid_input(self):
-        self.assertRaises(utils.ParsingError, proplogic.parse_sentence, ("THIS IS NONSENSE!"))
-        self.assertRaises(utils.ParsingError, proplogic.parse_sentence, ("EVER MORE RANDOM WORDS"))
-
     def test_kb_parsing(self):
         formulae = [
             "(A => B | D)",
@@ -135,10 +101,10 @@ class CnfConverterTests(unittest.TestCase):
         ]
         kb = proplogic.KnowledgeBase("\n".join(formulae))
         expected = "(!A | B | D) & (!A | !B | C) & (!C | !D) & (C | D)"
-        expected_cnf = proplogic.parse_sentence_to_cnf(expected)
+        expected_cnf = cnfparser.parse_propositional_sentence(expected)
         self.assertCountEqual(kb.raw_kb, expected_cnf)
 
-        and_concatenation = proplogic.parse_sentence_to_cnf(" & ".join(formulae))
+        and_concatenation = cnfparser.parse_propositional_sentence(" & ".join(formulae))
         self.assertCountEqual(kb.raw_kb, and_concatenation)
 
 
