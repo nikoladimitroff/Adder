@@ -105,12 +105,12 @@ class ChainingTests(unittest.TestCase):
 
 class CnfTests(unittest.TestCase):
     def assert_cnf(self, sentence, expected):
-        self.assertEqual(cnfparser.parse_fo_sentence(sentence), expected)
+        actual = cnfparser.parse_fo_sentence(sentence)
+        self.assertIn(actual, expected)
 
     def test_cnf(self):
-        pass
-        #print(cnfparser.parse_fo_sentence("V x(V y(Animal(y) => Loves(x,y)) & E z(Loves(z, x)))"))
+        print(cnfparser.print_cnf_clause(cnfparser.parse_fo_sentence("V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))")))
         #print(cnfparser.parse_fo_sentence("!V x, z(E y(P(x, y) & Q(z)))"))
-        #print(cnfparser.parse_fo_sentence("Q(x, y) <=> P(y, x)"))
+        #print(cnfparser.parse_fo_sentence("Q(x, T(y) <=> P(y, x)"))
         #print(cnfparser.parse_fo_sentence("=(+(1, 2), +(3, 4)) => =(3, 7)"))
         #print(cnfparser.parse_fo_sentence("Q <=> P"))

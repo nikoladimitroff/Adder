@@ -79,10 +79,10 @@ class CnfConverterTests(unittest.TestCase):
             result2 = cnfparser.parse_propositional_sentence(cnf)
             expected_cnf = [{symbol.strip() for symbol in
                              conjunct.replace(")", "").replace("(", "").split("|")
-                             }
+                            }
                             for conjunct in cnf.split("&")
                             if len(conjunct) != 0
-                            ]
+                           ]
             self.assertCountEqual(result, result2)
             self.assertCountEqual(result, expected_cnf)
 

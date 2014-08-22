@@ -19,7 +19,19 @@ LogicOperator.All = [
     LogicOperator.Implication,
     LogicOperator.Disjunction,
     LogicOperator.Conjuction,
-    LogicOperator.Negation
+    LogicOperator.Negation,
+    LogicOperator.Every,
+    LogicOperator.Exists
+]
+
+LogicOperator.AllRegex = [
+    (LogicOperator.Equivalence, re.compile(LogicOperator.Equivalence)),
+    (LogicOperator.Implication, re.compile(LogicOperator.Implication)),
+    (LogicOperator.Disjunction, re.compile(r"\|")),
+    (LogicOperator.Conjuction, re.compile(LogicOperator.Conjuction)),
+    (LogicOperator.Negation, re.compile(LogicOperator.Negation)),
+    (LogicOperator.Every, re.compile(r"\b{0}\b".format(LogicOperator.Every))),
+    (LogicOperator.Exists, re.compile(r"\b{0}\b".format(LogicOperator.Exists)))
 ]
 
 
@@ -27,9 +39,12 @@ class Braces:
     Left = "("
     Right = ")"
     Placeholder = "#"
+    FO_Left = "$FO_LEFT$"
+    FO_Right = "$FO_RIGHT$"
 
     @staticmethod
     def remove_surrounding(sentence):
+        sentence = sentence.strip()
         while sentence[0] == Braces.Left and \
               sentence[-1] == Braces.Right:
 
@@ -41,36 +56,40 @@ class Braces:
                     braces -= 1
                 if braces == 0:
                     return sentence
-            sentence = sentence[1:-1]
+            sentence = sentence[1:-1].strip()
         return sentence
 
     @staticmethod
     def flatten(text):
         tlb = False
-        fo_symbol = False
+        fo_braces = 0
         braces = 0
         result = ""
         for index, symbol in enumerate(text):
             if symbol == Braces.Left:
-                next_right = text[index:].index(Braces.Right)
+                next_right = Braces.find_unbalanced_right(text[index + 1:])
                 between_braces = text[index: index + next_right + 1]
-                contains_operator = any(op in between_braces
-                                        for op in LogicOperator.All)
-                fo_symbol = not contains_operator
-                if not fo_symbol and braces == 0:
+                contains_operator = any(re.search(regex, between_braces)
+                                        for op, regex in LogicOperator.AllRegex)
+                if not contains_operator and \
+                   index > 0 and text[index - 1] != " ":
+                    fo_braces += 1
+                if contains_operator and braces == 0:
                     tlb = True
-                if fo_symbol or tlb:
+                if fo_braces > 0:
+                    result += Braces.FO_Left
+                elif tlb:
                     result += Braces.Left
                 braces += 1
             elif symbol == Braces.Right:
                 braces -= 1
-                if braces == 0:
-                    if fo_symbol:
-                        fo_symbol = False
-                    else:
-                        tlb = False
-                if braces == 0 or fo_symbol:
+                if fo_braces > 0:
+                    fo_braces -= 1
+                    result += Braces.FO_Right
+                elif braces == 0:
                     result += Braces.Right
+                if braces != 0 and fo_braces == 0:
+                    tlb = False
             else:
                 result += symbol
 

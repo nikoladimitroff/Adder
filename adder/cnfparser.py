@@ -4,51 +4,13 @@ from adder import utils
 from adder.logic import Braces, LogicOperator, skolemize, SkolemRegex
 
 def parse_fo_sentence(sentence):
-   sentence = __move_negation_inwards(sentence)
-   sentence = skolemize(sentence)
-   sentence = __drop_universals(sentence)
-   cnf = parse_propositional_sentence(sentence)
-   return cnf
-
+    cnf = __compute_cnf(sentence)
+    cnf = skolemize(cnf)
+    cnf = __drop_universals(cnf)
+    return __clean_cnf(cnf)
 
 def parse_propositional_sentence(sentence):
     return __clean_cnf(__compute_cnf(sentence))
-
-
-def __move_negation_inwards(sentence):
-    next_negation = sentence.find(LogicOperator.Negation)
-    while next_negation != -1:
-        next_symbol_index = next_negation + 1
-        while sentence[next_symbol_index] == Braces.Left:
-            next_symbol_index += 1
-
-        symbol = sentence[next_symbol_index]
-        if symbol == LogicOperator.Every or \
-           symbol == LogicOperator.Exists:
-               operator = LogicOperator.Every if symbol != LogicOperator.Every \
-                                              else LogicOperator.Exists
-               next_left = sentence[next_symbol_index:].index(Braces.Left) + \
-                           next_symbol_index
-
-               variables = sentence[next_symbol_index + 1: next_left].strip()
-               tail = sentence[next_left + 1:]
-               next_right = Braces.find_unbalanced_right(tail)
-               expression = tail[:next_right]
-               rewritten = "{0} {1}({2}({3}))".format(operator, variables,
-                                                      LogicOperator.Negation,
-                                                      expression)
-               # +3 = 1 from tail + 1 from + 1 to include the right brace
-               original = sentence[next_negation: next_left + 3 + next_right]
-               sentence = sentence.replace(original, rewritten)
-
-        offset = len(variables) + 3 # +3 for the operator, space and (
-        next_next_negation = sentence[next_negation + offset:].find(LogicOperator.Negation)
-        if next_next_negation != -1:
-            next_negation += next_next_negation + offset
-        else:
-            next_negation = -1
-
-    return sentence
 
 
 def __drop_universals(sentence):
@@ -66,11 +28,13 @@ def __clean_cnf(cnf):
 
     clauses = set()
     for disjunct_text in cnf.split(LogicOperator.Conjuction):
-        left_replaced = disjunct_text.replace(Braces.Left, "")
-        disjunct_text = left_replaced.replace(Braces.Right, "")
+        disjunct_text = disjunct_text.replace(Braces.Left, "")\
+                                     .replace(Braces.Right, "")
         if len(disjunct_text) == 0:
             continue
 
+        disjunct_text = disjunct_text.replace(Braces.FO_Left, Braces.Left)\
+                                     .replace(Braces.FO_Right, Braces.Right)
         disjunct = frozenset(symbol.strip() for symbol in
                              disjunct_text.split(LogicOperator.Disjunction))
 
@@ -160,18 +124,42 @@ def __negation_cnf(operands):
         rewritten_formula = pattern.format(lhs, rhs,
                                            LogicOperator.Negation,
                                            LogicOperator.Conjuction)
+    elif operator == LogicOperator.Every or operator == LogicOperator.Exists:
+        negated_operator = LogicOperator.Exists if operator == LogicOperator.Every \
+                                                else LogicOperator.Every
+        variables, expression = tail_operands
+        pattern = "{0} {1}({2}({3}))"
+        rewritten_formula = pattern.format(negated_operator,
+                                           variables,
+                                           LogicOperator.Negation,
+                                           expression)
     else:
         rewritten_formula = "{0}({1})".format(LogicOperator.Negation,
                                               __compute_cnf(tail))
 
     return __compute_cnf(rewritten_formula)
 
+
+def __every_cnf(operands):
+    return "{0} {1}({2})".format(LogicOperator.Every,
+                                 operands[0],
+                                 __compute_cnf(operands[1]).strip())
+
+
+def __exists_cnf(operands):
+    return "{0} {1}({2})".format(LogicOperator.Exists,
+                                 operands[0],
+                                 __compute_cnf(operands[1]).strip())
+
+
 __OPERATOR_PARSERS = {
     LogicOperator.Equivalence: __equivalence_cnf,
     LogicOperator.Implication: __implication_cnf,
     LogicOperator.Disjunction: __disjunction_cnf,
     LogicOperator.Conjuction: __conjuction_cnf,
-    LogicOperator.Negation: __negation_cnf
+    LogicOperator.Negation: __negation_cnf,
+    LogicOperator.Every: __every_cnf,
+    LogicOperator.Exists: __exists_cnf
 }
 
 
@@ -206,8 +194,8 @@ def __breakdown_sentence(sentence):
 
 
 def __get_operator(replaced_sentence):
-    for operator in LogicOperator.All:
-        if operator in replaced_sentence:
+    for operator, regex in LogicOperator.AllRegex:
+        if re.search(regex, replaced_sentence):
             return operator
 
 
@@ -222,6 +210,14 @@ def __get_operands(replaced_sentence, operator):
         if sentence[0] == operator:
             return (sentence[1:], )
         return False
+
+    if operator == LogicOperator.Every or \
+       operator == LogicOperator.Exists:
+           op_index = text.index(operator)
+           left_brace = text[op_index:].index(Braces.Left)
+           variables = text[op_index + 1:left_brace].strip()
+           expression = replacements[0][1:-1]
+           return (variables, expression)
 
     lhs, rhs = text.split(" {0} ".format(operator), maxsplit=1)
     separator = "!SEPARATOR!"
