@@ -62,7 +62,7 @@ class CnfConverterTests(unittest.TestCase):
         formula_equivalences = [
             ("!(A <=> B)", "(!A | !B) & (A | B)"),
             ("(A <=> B)", "(!A | B) & (A | !B)"),
-            ("!((A <=> B) => ((A => B) & (B => A)))", "!A & !B & (A | B)"),
+            ("!((A <=> B) => ((A => B) & (B => A)))", "(A | B) & (!A | B) & (!B | A) & (!A | !B)"),
             ("(A <=> B) => ((A => B) & (B => A))", ""),
             ("(P & !Q) | (R & S) | (Q & R & !S)", "(P | Q | S) & (P | R) & (!Q | R)"),
             ("(A => (B & C)) => B", "A | B"),
@@ -130,14 +130,14 @@ class ResolutionProverTests(unittest.TestCase):
 
 
         formulae = "A | B"
-        kb = proplogic.KnowledgeBase(formulae, information_rich=False)
+        kb = proplogic.KnowledgeBase(formulae, complete=False)
         query = "A"
 
         result = kb.ask(query)
         self.assertFalse(result)
 
     def test_tell(self):
-        kb = proplogic.KnowledgeBase(information_rich=False)
+        kb = proplogic.KnowledgeBase(complete=False)
         kb.tell("(A & !B) <=> C")
         kb.tell("A")
         self.assertFalse(kb.ask("C"))

@@ -60,7 +60,38 @@ class Braces:
         return sentence
 
     @staticmethod
-    def flatten(text):
+    def flatten(text, is_first_order):
+        return Braces.__flatten_fo(text) if is_first_order \
+                                         else Braces.__flatten_prop(text)
+
+
+    @staticmethod
+    def __flatten_prop(text):
+        tlb = False
+        braces = 0
+        result = ""
+        for index, symbol in enumerate(text):
+            if symbol == Braces.Left:
+                if braces == 0:
+                    tlb = True
+                if tlb:
+                    result += Braces.Left
+                braces += 1
+            elif symbol == Braces.Right:
+                braces -= 1
+                if braces == 0:
+                    result += Braces.Right
+                if braces != 0:
+                    tlb = False
+            else:
+                result += symbol
+
+        return result
+
+
+
+    @staticmethod
+    def __flatten_fo(text):
         tlb = False
         fo_braces = 0
         braces = 0
@@ -344,6 +375,19 @@ def find_all_variables(expression):
             if __is_variable(var)]
 
 
+def is_subsumed_by(x, y):
+    """
+    Returns true if y subsumes x (for example P(x) subsumes P(A) as it is more
+    abstract)
+    """
+    varsX = __split_expression(x)[1]
+    theta = unify(x, y)
+    if theta is problem.FAILURE:
+        return False
+    return all(__is_variable(theta[var]) for var in theta.keys()
+               if var in varsX)
+
+
 class DefiniteClause:
     ReplacementIndex = 0
 
@@ -399,3 +443,34 @@ class DefiniteKnowledgeBase:
     def tell(self, *args):
         for sentence in args:
             self.raw_kb.append(DefiniteClause(sentence.strip()))
+
+
+class KnowledgeBase:
+    def __init__(self, parser, solver, text="", max_clause_len=float("inf"),
+                 complete=True):
+        self.parser = parser
+        self.solver = solver
+        self.raw_kb = parse_knowledge_base(parser, text)
+        self.max_clause_len = max_clause_len
+        self.complete = complete
+
+    def ask(self, query):
+        return self.solver(self.raw_kb, query,
+                           self.max_clause_len,
+                           self.complete)
+
+    def tell(self, *args):
+        for sentence in args:
+            self.raw_kb += self.parser(sentence.strip())
+
+    def __eq__(self, other):
+        return set(self.raw_kb) == set(other.raw_kb)
+
+    def __neq__(self, other):
+        return not (self == other)
+
+
+def parse_knowledge_base(parser, text):
+    return [clause
+            for sentence in text.strip().split("\n")
+            for clause in parser(sentence)]

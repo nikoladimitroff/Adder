@@ -1,16 +1,18 @@
 import re
 
 from adder import utils
-from adder.logic import Braces, LogicOperator, skolemize, SkolemRegex
+from adder.logic import Braces, LogicOperator, skolemize, SkolemRegex, \
+                        standardize_variables, unify
+from adder.problem import FAILURE
 
 def parse_fo_sentence(sentence):
     cnf = __compute_cnf(sentence)
     cnf = skolemize(cnf)
     cnf = __drop_universals(cnf)
-    return __clean_cnf(cnf)
+    return __clean_cnf(cnf, True)
 
 def parse_propositional_sentence(sentence):
-    return __clean_cnf(__compute_cnf(sentence))
+    return __clean_cnf(__compute_cnf(sentence), False)
 
 
 def __drop_universals(sentence):
@@ -23,8 +25,8 @@ def __drop_universals(sentence):
     return sentence
 
 
-def __clean_cnf(cnf):
-    cnf = Braces.flatten(cnf)
+def __clean_cnf(cnf, is_first_order):
+    cnf = Braces.flatten(cnf, is_first_order)
 
     clauses = set()
     for disjunct_text in cnf.split(LogicOperator.Conjuction):
@@ -51,6 +53,16 @@ def is_disjunction_tautology(disjunction):
     return False
 
 
+def is_fo_disjunction_tautology(disjunction):
+    for symbol in disjunction:
+        negation = LogicOperator.Negation + symbol
+        for symbol2 in disjunction:
+            theta = unify(negation, symbol2)
+            if theta is not FAILURE:
+                return True
+    return False
+
+
 def __clean_clauses(clauses):
     result = []
     for clause in clauses:
@@ -63,7 +75,7 @@ def __clean_clauses(clauses):
 
 def __equivalence_cnf(operands):
     lhs, rhs = operands
-    cnf = __compute_cnf("({2}{0} {3} {1}) {4} ({2}{1} {3} {0})"
+    cnf = __compute_cnf("({2}({0}) {3} {1}) {4} ({2}({1}) {3} {0})"
                            .format(lhs, rhs,
                                    LogicOperator.Negation,
                                    LogicOperator.Disjunction,
@@ -73,9 +85,9 @@ def __equivalence_cnf(operands):
 
 def __implication_cnf(operands):
     lhs, rhs = operands
-    cnf = __compute_cnf("{2}{0} {3} {1}".format(lhs, rhs,
-                                                   LogicOperator.Negation,
-                                                   LogicOperator.Disjunction))
+    cnf = __compute_cnf("{2}({0}) {3} {1}".format(lhs, rhs,
+                                                LogicOperator.Negation,
+                                                LogicOperator.Disjunction))
     return cnf
 
 
@@ -114,13 +126,13 @@ def __negation_cnf(operands):
         rewritten_formula = tail_operands[0]
     elif operator == LogicOperator.Conjuction:
         lhs, rhs = tail_operands
-        pattern = "{2}{0} {3} {2}{1}"
+        pattern = "{2}{0} {3} {2}({1})"
         rewritten_formula = pattern.format(lhs, rhs,
                                            LogicOperator.Negation,
                                            LogicOperator.Disjunction)
     elif operator == LogicOperator.Disjunction:
         lhs, rhs = tail_operands
-        pattern = "{2}{0} {3} {2}{1}"
+        pattern = "{2}({0}) {3} {2}({1})"
         rewritten_formula = pattern.format(lhs, rhs,
                                            LogicOperator.Negation,
                                            LogicOperator.Conjuction)
@@ -173,12 +185,13 @@ def __compute_cnf(sentence):
 
 
 def __is_symbol(sentence):
-    return not (LogicOperator.Negation in sentence or
-                LogicOperator.Conjuction in sentence or
-                LogicOperator.Disjunction in sentence or
-                LogicOperator.Implication in sentence or
-                LogicOperator.Equivalence in sentence)
-
+    return not any(re.search(regex, sentence)
+                   for op, regex in LogicOperator.AllRegex)
+    return not (LogicOperator.Equivalence in sentence or \
+        LogicOperator.Implication in sentence or \
+        LogicOperator.Conjuction in sentence or \
+        LogicOperator.Disjunction in sentence or \
+        LogicOperator.Negation in sentence)
 
 def __breakdown_sentence(sentence):
     sentence = Braces.remove_surrounding(sentence.strip())
@@ -226,11 +239,11 @@ def __get_operands(replaced_sentence, operator):
     return (lhs.strip(), rhs.strip())
 
 
-def print_cnf_clause(clause):
+def print_cnf(clause):
     if isinstance(clause, frozenset):
         printable = " | ".join(sorted(clause))
     else:
         formula = ") & (".join([" | ".join(disjunct) for disjunct in clause])
         printable = "({0})".format(formula)
 
-    print(printable)
+    return printable

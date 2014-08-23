@@ -104,13 +104,63 @@ class ChainingTests(unittest.TestCase):
 
 
 class CnfTests(unittest.TestCase):
+    # This class uses Square braces [] instead of () for grouping disjunctions
+    # in tests
     def assert_cnf(self, sentence, expected):
-        actual = cnfparser.parse_fo_sentence(sentence)
-        self.assertIn(actual, expected)
+        result = cnfparser.parse_fo_sentence(sentence)
+        for i, cnf in enumerate(expected):
+            expected[i] = [{symbol.strip() for symbol in
+                             conjunct.replace("[", "").replace("]", "").split("|")
+                            }
+                            for conjunct in cnf.split("&")
+                            if len(conjunct) != 0
+                           ]
+            expected[i] = set(frozenset(s) for s in expected[i])
+        result = set(result)
+        self.assertIn(result, expected)
 
     def test_cnf(self):
-        print(cnfparser.print_cnf_clause(cnfparser.parse_fo_sentence("V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))")))
-        #print(cnfparser.parse_fo_sentence("!V x, z(E y(P(x, y) & Q(z)))"))
-        #print(cnfparser.parse_fo_sentence("Q(x, T(y) <=> P(y, x)"))
-        #print(cnfparser.parse_fo_sentence("=(+(1, 2), +(3, 4)) => =(3, 7)"))
-        #print(cnfparser.parse_fo_sentence("Q <=> P"))
+        tests = {
+            "V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))": [
+                "[Animal(SF1(x)) | Loves(SF2(x), x)] & [!Loves(x, SF1(x)) | Loves(SF2(x), x)]",
+                "[Animal(SF2(x)) | Loves(SF1(x), x)] & [!Loves(x, SF2(x)) | Loves(SF1(x), x)]",
+            ],
+            "P(A) => Q(B)": [
+                "[!P(A) | Q(B)]",
+            ],
+            "E x(P(x)) => V y(Q(y))": [
+                "!P(x) | Q(y)"
+            ]
+        }
+        for formula, expected in tests.items():
+            self.assert_cnf(formula, expected)
+
+
+class ResolutionTests(unittest.TestCase):
+    def test_criminal(self):
+        kb = fologic.KnowledgeBase("""
+            V x(American(x) & Weapon(y) & Sells(x, y, z) & Hostile(z) => Criminal(x))
+            Owns(Nono, M1)
+            Missile(M1)
+            V x(Missile(x) & Owns(Nono, x) => Sells(West, x, Nono))
+            V x(Missile(x) => Weapon(x))
+            V x(Enemy(x, America) => Hostile(x))
+            American(West)
+            Enemy(Nono, America)
+        """, 5, False)
+
+        self.assertTrue(kb.ask("Criminal(West)"))
+
+        kb = fologic.KnowledgeBase("""
+            V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))
+            V x(E y(Animal(y) & Kills(x, y)) => V z(!Loves(z, x)))
+            V x(Animal(x) => Loves(x, Jack))
+            Cat(Tuna)
+            Kills(Jack, Tuna) | Kills(Curiosity, Tuna)
+            V x(Cat(x) => Animal(x))
+        """, 3, False)
+
+        self.assertTrue(kb.ask("Kills(Curiosity, Tuna)"))
+        self.assertFalse(kb.ask("!Kills(Curiosity, Tuna)"))
+        self.assertFalse(kb.ask("Kills(Jack, Tuna)"))
+        self.assertTrue(kb.ask("!Kills(Jack, Tuna)"))

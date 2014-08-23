@@ -60,28 +60,6 @@ def __and_step(kb, true_symbols, checked, implication):
 
 DefiniteKnowledgeBase = partial(logic.DefiniteKnowledgeBase, backward_chaining)
 
-class KnowledgeBase:
-    def __init__(self, text="", max_clause_len=float("inf"),
-                 information_rich=True):
-        self.raw_kb = parse_knowledge_base(text)
-        self.max_clause_len = max_clause_len
-        self.information_rich = information_rich
-
-    def ask(self, query):
-        return resolution_prover(self.raw_kb, query,
-                                 self.max_clause_len,
-                                 self.information_rich)
-
-    def tell(self, *args):
-        for sentence in args:
-            self.raw_kb += parse_cnf(sentence.strip())
-
-    def __eq__(self, other):
-        return set(self.raw_kb) == set(other.raw_kb)
-
-    def __neq__(self, other):
-        return not (self == other)
-
 
 def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
     negated_query = "{0}({1})".format(LogicOperator.Negation, query)
@@ -148,8 +126,4 @@ def __resolve_single_sided(c1, c2, resolvents):
         if negation in c2:
             resolvents.append(c1.union(c2).difference({symbol, negation}))
 
-
-def parse_knowledge_base(text):
-    return [clause
-            for sentence in text.strip().split("\n")
-            for clause in parse_cnf(sentence)]
+KnowledgeBase = partial(logic.KnowledgeBase, parse_cnf, resolution_prover)
