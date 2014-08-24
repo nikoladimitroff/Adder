@@ -317,6 +317,7 @@ def propagate_substitutions(theta):
         for var in theta:
             regex = r"\b{0}\b".format(var)
             theta[key] = re.sub(regex, theta[var], theta[key])
+    return theta
 
 
 def unify(expression1, expression2, theta=None):
@@ -358,6 +359,20 @@ def __unify_variable(var, expression, theta):
     return theta
 
 
+def unify_substitutions(theta1, theta2):
+    theta = theta1.copy()
+    for x in theta2:
+        if x in theta1:
+            subst = unify(theta1[x], theta2[x], theta)
+            if subst is problem.FAILURE:
+                return subst
+            theta[x] = substitute(theta1[x], subst)
+        else:
+            theta[x] = theta2[x]
+
+    return theta
+
+
 def __split_expression(expr):
     expr = expr.strip()
     left_index = expr.find(Braces.Left)
@@ -370,9 +385,20 @@ def __split_expression(expr):
     args = replaced.split(separator)
     return function, args
 
+
 def find_all_variables(expression):
-    return [var for var in __split_expression(expression)[1]
-            if __is_variable(var)]
+    args = __split_expression(expression)[1]
+    if args is None or len(args) == 0:
+        return []
+
+    firstLevel = [var for var in args
+                  if __is_variable(var)]
+    nestedLevels = [var
+                    for expr in args
+                    for var in find_all_variables(expr)
+                    if not __is_variable(expr)]
+
+    return firstLevel + nestedLevels
 
 
 def is_subsumed_by(x, y):

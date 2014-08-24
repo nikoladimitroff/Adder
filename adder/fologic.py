@@ -1,10 +1,12 @@
 from functools import partial
+from collections import defaultdict
 import re
 
 from adder import problem, logic
 from adder.logic import Braces, LogicOperator, DefiniteClause, \
                         standardize_variables, StandartizationReplacer,\
-                        skolemize, unify, substitute, propagate_substitutions,\
+                        skolemize, unify, unify_substitutions, substitute, \
+                        propagate_substitutions,\
                         find_all_variables, is_subsumed_by
 from adder.utils import ParsingError
 from adder.cnfparser import parse_fo_sentence as parse_cnf, \
@@ -65,7 +67,10 @@ def is_subsumed_in(clause, clause_set):
                for disjunction in clause_set)
 
 
+CLAUSE_MAPPING = defaultdict(list)
+
 def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
+    CLAUSE_MAPPING.clear()
     negated_query = "{0}({1})".format(LogicOperator.Negation, query)
     not_query_cnf = parse_cnf(negated_query)
     clauses = not_query_cnf + knowledge_base
@@ -105,16 +110,16 @@ def __resolution_step(new_inferrences, already_resolved,
     for c1, c2 in pairs:
         resolvents = __resolve(c1, c2, max_clause_len)
         #if len(resolvents) != 0:
-        #     print(print_cnf_clause(c1), " & ", print_cnf_clause(c2), " : ", resolvents)
+        #    print("RESOLVENTS", resolvents)
         if empty_set in resolvents:
-            return True
+            return True, list(map(propagate_substitutions, CLAUSE_MAPPING[empty_set]))
 
         new_inferrences.update(resolvents)
         already_resolved.add((c1, c2))
 
     #print("INFERRED", new_inferrences)
     if new_inferrences.issubset(clauses):
-        return False
+        return False, {}
 
     clauses.extend(clause for clause in new_inferrences
                    if not is_subsumed_in(clause, clauses))
@@ -135,10 +140,15 @@ def __resolve_single_sided(c1, c2, resolvents):
     for symbol in c1:
         negation = LogicOperator.Negation + symbol
         for symbol2 in c2:
-            theta = unify(negation, symbol2)
-            if theta is not problem.FAILURE:
-                result = c1.union(c2).difference({symbol, symbol2})
-                resolvents.append(__standardize_resolvent(result, theta))
+            if len(CLAUSE_MAPPING[c1]) == 0: CLAUSE_MAPPING[c1].append({})
+            if len(CLAUSE_MAPPING[c2]) == 0: CLAUSE_MAPPING[c2].append({})
+            for th1 in CLAUSE_MAPPING[c1]:
+                for th2 in CLAUSE_MAPPING[c2]:
+                    th = unify_substitutions(th1, th2)
+                    theta = unify(negation, symbol2, th)
+                    if theta is not problem.FAILURE:
+                        result = c1.union(c2).difference({symbol, symbol2})
+                        resolvents.append(__standardize_resolvent(result, theta))
 
 
 def __standardize_resolvent(resolvent, theta):
@@ -146,11 +156,13 @@ def __standardize_resolvent(resolvent, theta):
     result = set()
     for index, disjunct in enumerate(resolvent):
         # Do we need standartization?
-       # result.add(substitute(disjunct, theta))
-        result.add(re.sub(replacer.REGEX, replacer, substitute(disjunct, theta)))
+        result.add(substitute(disjunct, theta))
+       # result.add(re.sub(replacer.REGEX, replacer, substitute(disjunct, theta)))
 
     StandartizationReplacer.GlobalIndex = replacer.index
-    return frozenset(result)
+    resolvent = frozenset(result)
+    CLAUSE_MAPPING[resolvent].append(theta)
+    return resolvent
 
 def __parser(sentence):
     return parse_cnf(standardize_variables(sentence)[0])
