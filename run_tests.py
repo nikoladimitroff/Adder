@@ -12,9 +12,9 @@
 #from tests.proplogic import DefiniteClausesTests#
 #from tests.proplogic import CnfConverterTests
 #from tests.proplogic import ResolutionProverTests
-#from tests.fologic import HelperTests
-#from tests.fologic import ChainingTests
-#from tests.fologic import CnfTests
+from tests.fologic import HelperTests
+from tests.fologic import ChainingTests
+from tests.fologic import CnfTests
 from tests.fologic import ResolutionTests
 
 from tests import config

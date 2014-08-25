@@ -137,6 +137,9 @@ class CnfTests(unittest.TestCase):
 
 
 class ResolutionTests(unittest.TestCase):
+    def assert_query(self, kb, query, expected):
+        self.assertEqual(kb.ask(query), expected)
+
     def test_criminal(self):
         kb = fologic.KnowledgeBase("""
             V x(American(x) & Weapon(y) & Sells(x, y, z) & Hostile(z) => Criminal(x))
@@ -150,6 +153,7 @@ class ResolutionTests(unittest.TestCase):
         """, 5, False)
 
         #self.assertTrue(kb.ask("Criminal(West)"))
+       # print("Who's the criminal?", kb.ask("E x(Criminal(x))"))
 
         kb = fologic.KnowledgeBase("""
             V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))
@@ -169,6 +173,19 @@ class ResolutionTests(unittest.TestCase):
         print("Did Curisity kill something?", kb.ask("E x(Kills(Curiosity, x))"))
         print("Is there a cat?", kb.ask("E x(Cat(x))"))
         print("Is anyone loved by all animals?", kb.ask("E x(V y(Animal(y)) => Loves(y, x))"))
+        print("Did anyone kill anything?", kb.ask("E x,y(Kills(x, y))"))
+
+        self.assert_query(kb, "Kills(Curiosity, Tuna)", {})
+        self.assert_query(kb, "!Kills(Curiosity, Tuna)", FAILURE)
+        self.assert_query(kb, "Kills(Jack, Tuna)", FAILURE)
+        self.assert_query(kb, "!Kills(Jack, Tuna)", {})
+        self.assert_query(kb, "E x(Kills(x, Tuna))", {"x": "Curiosity"})
+        self.assert_query(kb, "E x(Kills(Jack, x))", FAILURE)
+        self.assert_query(kb, "E x(Kills(Curiosity, x))", {"x": "Tuna"})
+        self.assert_query(kb, "E x(Cat(x))", {"x": "Tuna"})
+        self.assert_query(kb, "E x(V y(Animal(y)) => Loves(y, x))", {"x": "Jack"})
+        self.assert_query(kb, "E x,y(Kills(x, y))", {"x": "Curiosity", "y": "Tuna"})
+
 
         kb = fologic.KnowledgeBase("""
             P(A)

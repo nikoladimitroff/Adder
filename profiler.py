@@ -3,6 +3,7 @@ import adder.proplogic as proplogic
 
 import cProfile, pstats, io
 import adder
+from adder import fologic
 
 def profileWumpus():
     size = 2
@@ -24,9 +25,10 @@ def profileWumpus():
     profiler.disable()
 
     s = io.StringIO()
-    sortby = 'cumulative'
-    ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
-    ps.print_stats()
+    sortby = "cumtime" # lolz
+    ps = pstats.Stats(profiler, stream=s)
+    ps.sort_stats("cumtime", "tottime")
+    ps.print_stats(0.5)
     print(s.getvalue())
 
 def profileKB():
@@ -70,6 +72,31 @@ def profile_fo_definite_kb():
 
     kb.ask()
 
+
+def profile_fo_resolution():
+    kb = fologic.KnowledgeBase("""
+        V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))
+        V x(E y(Animal(y) & Kills(x, y)) => V z(!Loves(z, x)))
+        V x(Animal(x) => Loves(x, Jack))
+        Cat(Tuna)
+        Kills(Jack, Tuna) | Kills(Curiosity, Tuna)
+        V x(Cat(x) => Animal(x))
+    """, 3, False)
+
+    print("Did Curiosity kill Tuna?", kb.ask("Kills(Curiosity, Tuna)"))
+    print("Did Curiosity NOT kill Tuna?", kb.ask("!Kills(Curiosity, Tuna)"))
+    print("Did Jack Kill Tuna?", kb.ask("Kills(Jack, Tuna)"))
+    print("Did Jack NOT kill Tuna?", kb.ask("!Kills(Jack, Tuna)"))
+    print("Who killed Tuna?", kb.ask("E x(Kills(x, Tuna))"))
+    print("Did Jack kill something?", kb.ask("E x(Kills(Jack, x))"))
+    print("Did Curisity kill something?", kb.ask("E x(Kills(Curiosity, x))"))
+    print("Is there a cat?", kb.ask("E x(Cat(x))"))
+    print("Is anyone loved by all animals?", kb.ask("E x(V y(Animal(y)) => Loves(y, x))"))
+    print("Did anyone kill anything?", kb.ask("E x,y(Kills(x, y))"))
+
+
+
+
 def profile():
     import sys
     sys.argv = ["profiler.py", "snake", "10"]
@@ -78,8 +105,8 @@ def profile():
     profiler = cProfile.Profile()
     profiler.enable()
 
-    import demos.snake
 
+    profile_fo_resolution()
 
     profiler.disable()
 
