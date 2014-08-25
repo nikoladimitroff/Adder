@@ -382,7 +382,6 @@ def unify_substitutions(theta1, theta2):
 
 
 def __split_expression(expr):
-   # return split_regex(expr)
     expr = expr.strip()
     left_index = expr.find(Braces.Left)
     if left_index == -1:
@@ -392,26 +391,7 @@ def __split_expression(expr):
     replaced = Braces.restore(replaced.replace(", ", separator), table)
     function = expr[:left_index]
     args = replaced.split(separator)
-    res = split_regex(expr)
-    if function != res[0] or len(args) != len(res[1]) or \
-       any(args[i] != res[1][i] for i in range(len(args))):
-        print(expr)
-        print("FUNC: ", function.strip(), "ARGS:", args)
-        print("FUNC: ", res[0], "ARGS: ", res[1])
-        print("---------------------------------")
     return function, args
-
-
-def split_regex(expr):
-    expr = expr.strip()
-    pattern = r"(!*[\w\d_]*)\((.*)\)$"
-    match = re.match(pattern, expr)
-    if match:
-        function_call = list(match.groups())
-     #   print(expr, function_call[0], function_call[1].split(", "))
-        return function_call[0], function_call[1].split(", ")
-    #print("FAILED", expr)
-    return None, None
 
 
 def find_variables_symbol(expression):

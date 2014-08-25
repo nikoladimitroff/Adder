@@ -13,6 +13,7 @@ from adder.utils import ParsingError
 from adder.cnfparser import parse_fo_sentence as parse_cnf, \
                             is_fo_disjunction_tautology, print_cnf
 
+
 def backward_chaining(kb, query):
     all_variables = find_variables_symbol(query)
     query, var_map = standardize_variables(query)
