@@ -119,6 +119,10 @@ class CnfTests(unittest.TestCase):
         result = set(result)
         self.assertIn(result, expected)
 
+    def assert_cnf_equivalence(self, first, second):
+        self.assertEqual(cnfparser.parse_fo_sentence(first),
+                         cnfparser.parse_fo_sentence(second))
+
     def test_cnf(self):
         tests = {
             "V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))": [
@@ -130,10 +134,17 @@ class CnfTests(unittest.TestCase):
             ],
             "E x(P(x)) => V y(Q(y))": [
                 "!P(x) | Q(y)"
-            ]
+            ],
         }
         for formula, expected in tests.items():
             self.assert_cnf(formula, expected)
+
+    def test_operator_precedence(self):
+        assertion = self.assert_cnf_equivalence
+        assertion("V x(P(x) & Q(x) <=> T(x))",
+                  "V x((P(x) & Q(x)) <=> T(x))")
+        assertion("V x(P(x) | Q(x) => R(x) & S(x))",
+                  "V x((P(x) | Q(x)) => (R(x) & S(x)))")
 
 
 class ResolutionTests(unittest.TestCase):
@@ -150,10 +161,9 @@ class ResolutionTests(unittest.TestCase):
             V x(Enemy(x, America) => Hostile(x))
             American(West)
             Enemy(Nono, America)
-        """, 5, True)
+        """, 5, False)
 
         self.assert_query(kb, "Criminal(West)", {})
-       # print("Who's the criminal?", kb.ask("E x(Criminal(x))"))
 
         kb = fologic.KnowledgeBase("""
             V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))
@@ -162,26 +172,4 @@ class ResolutionTests(unittest.TestCase):
             Cat(Tuna)
             Kills(Jack, Tuna) | Kills(Curiosity, Tuna)
             V x(Cat(x) => Animal(x))
-        """, 3, True)
-
-        print("Did Curiosity kill Tuna?", kb.ask("Kills(Curiosity, Tuna)"))
-        print("Did Curiosity NOT kill Tuna?", kb.ask("!Kills(Curiosity, Tuna)"))
-        print("Did Jack Kill Tuna?", kb.ask("Kills(Jack, Tuna)"))
-        print("Did Jack NOT kill Tuna?", kb.ask("!Kills(Jack, Tuna)"))
-        print("Who killed Tuna?", kb.ask("E x(Kills(x, Tuna))"))
-        print("Did Jack kill something?", kb.ask("E x(Kills(Jack, x))"))
-        print("Did Curisity kill something?", kb.ask("E x(Kills(Curiosity, x))"))
-        print("Is there a cat?", kb.ask("E x(Cat(x))"))
-        print("Is anyone loved by all animals?", kb.ask("E x(V y(Animal(y)) => Loves(y, x))"))
-        print("Did anyone kill anything?", kb.ask("E x,y(Kills(x, y))"))
-
-        self.assert_query(kb, "Kills(Curiosity, Tuna)", {})
-        self.assert_query(kb, "!Kills(Curiosity, Tuna)", FAILURE)
-        self.assert_query(kb, "Kills(Jack, Tuna)", FAILURE)
-        self.assert_query(kb, "!Kills(Jack, Tuna)", {})
-        self.assert_query(kb, "E x(Kills(x, Tuna))", {"x": "Curiosity"})
-        self.assert_query(kb, "E x(Kills(Jack, x))", FAILURE)
-        self.assert_query(kb, "E x(Kills(Curiosity, x))", {"x": "Tuna"})
-        self.assert_query(kb, "E x(Cat(x))", {"x": "Tuna"})
-        self.assert_query(kb, "E x(V y(Animal(y)) => Loves(y, x))", {"x": "Jack"})
-        self.assert_query(kb, "E x,y(Kills(x, y))", {"x": "Curiosity", "y": "Tuna"})
+        """, 3, False)

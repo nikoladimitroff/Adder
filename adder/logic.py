@@ -14,6 +14,7 @@ class LogicOperator:
     Every = "V"
     Exists = "E"
 
+
 LogicOperator.All = [
     LogicOperator.Equivalence,
     LogicOperator.Implication,
@@ -23,6 +24,7 @@ LogicOperator.All = [
     LogicOperator.Every,
     LogicOperator.Exists
 ]
+
 
 LogicOperator.AllRegex = [
     (LogicOperator.Equivalence, re.compile(LogicOperator.Equivalence)),
@@ -45,8 +47,8 @@ class Braces:
     @staticmethod
     def remove_surrounding(sentence):
         sentence = sentence.strip()
-        while sentence[0] == Braces.Left and \
-              sentence[-1] == Braces.Right:
+        while (sentence[0] == Braces.Left and
+               sentence[-1] == Braces.Right):
 
             braces = 1
             for symbol in sentence[1:-1]:
@@ -61,9 +63,8 @@ class Braces:
 
     @staticmethod
     def flatten(text, is_first_order):
-        return Braces.__flatten_fo(text) if is_first_order \
-                                         else Braces.__flatten_prop(text)
-
+        func = Braces.__flatten_fo if is_first_order else Braces.__flatten_prop
+        return func(text)
 
     @staticmethod
     def __flatten_prop(text):
@@ -87,8 +88,6 @@ class Braces:
                 result += symbol
 
         return result
-
-
 
     @staticmethod
     def __flatten_fo(text):
@@ -164,7 +163,7 @@ class Braces:
         return text
 
     @staticmethod
-    def find_unbalanced_right( expression):
+    def find_unbalanced_right(expression):
         braces = 0
         for index, symbol in enumerate(expression):
             if symbol == '(':
@@ -175,10 +174,9 @@ class Braces:
                 return index
 
 
-
-
 class SkolemRegex:
     COMMON = r"{0} ((?:\w+, ?)*(?:\w+))\("
+
 
 SkolemRegex.EVERY = re.compile(SkolemRegex.COMMON.format(LogicOperator.Every))
 SkolemRegex.EXISTS = re.compile(SkolemRegex.COMMON.format(LogicOperator.Exists))
@@ -225,14 +223,12 @@ class Skolemizer:
             self.functions += 1
             return "SF{0}({1})".format(self.functions, ", ".join(universals))
 
-
     def get_replacer(self, skolemized):
         def replacer(match):
             if re.match(SkolemRegex.EXISTS, match.group()):
                 return match.group()
             return skolemized
         return replacer
-
 
     def __reverse_tree(self, tree):
         frontier = [(None, tree[None])]
@@ -306,7 +302,7 @@ class StandartizationReplacer:
 
 
 def standardize_variables(expression, var="x", use_global=True):
-    replacer=StandartizationReplacer(var, use_global)
+    replacer = StandartizationReplacer(var, use_global)
     result = re.sub(replacer.REGEX, replacer, expression)
     if use_global:
         StandartizationReplacer.GlobalIndex = replacer.index
@@ -329,10 +325,6 @@ class Substituer:
 def substitute(expression, theta):
     subst = Substituer(theta)
     return re.sub(subst.regex, subst, expression)
-    #for key, value in theta.items():
-    #    regex = r"\b{0}\b".format(key)
-    #    expression = re.sub(regex, value, expression)
-    #return expression
 
 
 def propagate_substitutions(theta):
@@ -424,6 +416,7 @@ def find_variables_symbol(expression):
 
     return firstLevel + nestedLevels
 
+
 def find_variables_expression(expression):
     skolemizer = Skolemizer()
     return skolemizer.find_all_variables(expression)
@@ -471,7 +464,7 @@ class DefiniteClause:
         return (premises, conclusions[0])
 
     def standardize(self, var="x"):
-        replacer=StandartizationReplacer(var)
+        replacer = StandartizationReplacer(var)
         for index, premise in enumerate(self.premises):
             self.premises[index] = re.sub(replacer.REGEX, replacer, premise)
         self.conclusion = re.sub(replacer.REGEX, replacer, self.conclusion)
@@ -500,8 +493,8 @@ class DefiniteKnowledgeBase:
 
 
 class KnowledgeBase:
-    def __init__(self, parser, solver, text="", max_clause_len=float("inf"),
-                 complete=True):
+    def __init__(self, parser, solver, text="",
+                 max_clause_len=float("inf"), complete=True):
         self.parser = parser
         self.solver = solver
         self.raw_kb = parse_knowledge_base(parser, text)

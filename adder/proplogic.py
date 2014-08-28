@@ -3,9 +3,11 @@ import itertools
 from functools import partial
 
 from adder import utils, logic
-from adder.logic import Braces, LogicOperator, DefiniteClause, SkolemRegex, skolemize
-from adder.cnfparser import parse_propositional_sentence as parse_cnf, \
-                            is_disjunction_tautology
+from adder.logic import (Braces, LogicOperator, DefiniteClause,
+                         SkolemRegex, skolemize)
+from adder.cnfparser import (parse_propositional_sentence as parse_cnf,
+                             is_disjunction_tautology)
+
 
 def forward_chaining(knowledge_base, query):
     premises_count = {clause: len(clause.premises)
@@ -37,6 +39,7 @@ def backward_chaining(knowledge_base, query):
 
     return __or_step(knowledge_base, query,
                      true_symbols, true_symbols)
+
 
 def __or_step(kb, query, true_symbols, checked):
     if query in true_symbols:

@@ -1,37 +1,14 @@
 from demos import wumpus
 import adder.proplogic as proplogic
 
-import cProfile, pstats, io
+import cProfile
+import pstats
+import io
 import adder
 from adder import fologic
 
-def profileWumpus():
-    size = 2
-    agent = wumpus.HybridAgent(size)
-    world = wumpus.World(size, agent)
 
-    iterations = 1
-
-    percept = world.update(None)
-
-    profiler = cProfile.Profile()
-    profiler.enable()
-
-    for i in range(2):
-        action = agent.update(percept)
-        percept = world.update(action)
-        print(percept, action, agent.position, agent.time)
-
-    profiler.disable()
-
-    s = io.StringIO()
-    sortby = "cumtime" # lolz
-    ps = pstats.Stats(profiler, stream=s)
-    ps.sort_stats("cumtime", "tottime")
-    ps.print_stats(0.5)
-    print(s.getvalue())
-
-def profileKB():
+def profile_prop_kb():
 
     pl_kb = proplogic.KnowledgeBase("""
         Ucha_FMI <=> (Matematik | Programist)
@@ -63,6 +40,7 @@ def profileKB():
     ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
     ps.print_stats()
     print(s.getvalue())
+
 
 def profile_fo_definite_kb():
     kb = fologic.DefiniteKnowledgeBase("""
@@ -110,12 +88,9 @@ def profile_fo_resolution():
     print("Did anyone kill anything?", kb.ask("E x,y(Kills(x, y))"))
 
 
-
-
 def profile():
     import sys
     sys.argv = ["profiler.py", "snake", "10"]
-
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -129,6 +104,5 @@ def profile():
     ps = pstats.Stats(profiler, stream=s).sort_stats(sortby)
     ps.print_stats()
     print(s.getvalue())
-    #profileWumpus()
 
 profile()

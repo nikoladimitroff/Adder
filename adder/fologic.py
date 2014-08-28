@@ -3,15 +3,16 @@ from collections import defaultdict
 import re
 
 from adder import problem, logic
-from adder.logic import Braces, LogicOperator, DefiniteClause, \
-                        standardize_variables, StandartizationReplacer,\
-                        skolemize, unify, unify_substitutions, substitute, \
-                        propagate_substitutions,\
-                        find_variables_symbol, find_variables_expression,\
-                        is_subsumed_by
+from adder.logic import (Braces, LogicOperator, DefiniteClause,
+                         standardize_variables, StandartizationReplacer,
+                         skolemize, unify, unify_substitutions, substitute,
+                         propagate_substitutions,
+                         find_variables_symbol, find_variables_expression,
+                         is_subsumed_by)
+
 from adder.utils import ParsingError
-from adder.cnfparser import parse_fo_sentence as parse_cnf, \
-                            is_fo_disjunction_tautology, print_cnf
+from adder.cnfparser import (parse_fo_sentence as parse_cnf,
+                             is_fo_disjunction_tautology, print_cnf)
 
 
 def backward_chaining(kb, query):
@@ -81,10 +82,11 @@ class ClauseBindingMapper:
                                                  self.container[c2][j])
         return self.memo[key]
 
-
     def get_unified_bindings(self, c1, c2):
-        if len(self.container[c1]) == 0: self.container[c1].append({})
-        if len(self.container[c2]) == 0: self.container[c2].append({})
+        if len(self.container[c1]) == 0:
+            self.container[c1].append({})
+        if len(self.container[c2]) == 0:
+            self.container[c2].append({})
         return (self.get_from_key(c1, c2, i, j)
                 for i, th1 in enumerate(self.container[c1])
                 for j, th2 in enumerate(self.container[c2]))
@@ -129,7 +131,6 @@ def resolution_prover(knowledge_base, query, max_clause_len, is_complete):
                 return problem.FAILURE
 
 
-
 def __resolution_step(new_inferrences, already_resolved,
                       clauses, max_clause_len,
                       clause_mapping, empty_set=frozenset()):
@@ -142,7 +143,9 @@ def __resolution_step(new_inferrences, already_resolved,
     for c1, c2 in pairs:
         resolvents = __resolve(c1, c2, max_clause_len, clause_mapping)
         if empty_set in resolvents:
-            return True, propagate_substitutions(clause_mapping.container[empty_set][0])
+            bindings = clause_mapping.container[empty_set][0]
+            bindings = propagate_substitutions(bindings)
+            return True, bindings
 
         new_inferrences.update(resolvents)
         already_resolved.add((c1, c2))
@@ -187,6 +190,7 @@ def __standardize_resolvent(resolvent, theta):
     StandartizationReplacer.GlobalIndex = replacer.index
     resolvent = frozenset(result)
     return resolvent
+
 
 def __parser(sentence):
     return parse_cnf(standardize_variables(sentence)[0])

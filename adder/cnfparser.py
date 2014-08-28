@@ -1,15 +1,17 @@
 import re
 
 from adder import utils
-from adder.logic import Braces, LogicOperator, skolemize, SkolemRegex, \
-                        standardize_variables, unify
+from adder.logic import (Braces, LogicOperator, skolemize, SkolemRegex,
+                         standardize_variables, unify)
 from adder.problem import FAILURE
+
 
 def parse_fo_sentence(sentence):
     cnf = __compute_cnf(sentence)
     cnf = skolemize(cnf)
     cnf = __drop_universals(cnf)
     return __clean_cnf(cnf, True)
+
 
 def parse_propositional_sentence(sentence):
     return __clean_cnf(__compute_cnf(sentence), False)
@@ -76,18 +78,18 @@ def __clean_clauses(clauses):
 def __equivalence_cnf(operands):
     lhs, rhs = operands
     cnf = __compute_cnf("({2}({0}) {3} {1}) {4} ({2}({1}) {3} {0})"
-                           .format(lhs, rhs,
-                                   LogicOperator.Negation,
-                                   LogicOperator.Disjunction,
-                                   LogicOperator.Conjuction))
+                        .format(lhs, rhs,
+                                LogicOperator.Negation,
+                                LogicOperator.Disjunction,
+                                LogicOperator.Conjuction))
     return cnf
 
 
 def __implication_cnf(operands):
     lhs, rhs = operands
     cnf = __compute_cnf("{2}({0}) {3} {1}".format(lhs, rhs,
-                                                LogicOperator.Negation,
-                                                LogicOperator.Disjunction))
+                                                  LogicOperator.Negation,
+                                                  LogicOperator.Disjunction))
     return cnf
 
 
@@ -187,11 +189,12 @@ def __compute_cnf(sentence):
 def __is_symbol(sentence):
     return not any(re.search(regex, sentence)
                    for op, regex in LogicOperator.AllRegex)
-    return not (LogicOperator.Equivalence in sentence or \
-        LogicOperator.Implication in sentence or \
-        LogicOperator.Conjuction in sentence or \
-        LogicOperator.Disjunction in sentence or \
-        LogicOperator.Negation in sentence)
+    return not (LogicOperator.Equivalence in sentence or
+                LogicOperator.Implication in sentence or
+                LogicOperator.Conjuction in sentence or
+                LogicOperator.Disjunction in sentence or
+                LogicOperator.Negation in sentence)
+
 
 def __breakdown_sentence(sentence):
     sentence = Braces.remove_surrounding(sentence.strip())
@@ -224,13 +227,12 @@ def __get_operands(replaced_sentence, operator):
             return (sentence[1:], )
         return False
 
-    if operator == LogicOperator.Every or \
-       operator == LogicOperator.Exists:
-           op_index = text.index(operator)
-           left_brace = text[op_index:].index(Braces.Left)
-           variables = text[op_index + 1:left_brace].strip()
-           expression = replacements[0][1:-1]
-           return (variables, expression)
+    if operator == LogicOperator.Every or operator == LogicOperator.Exists:
+        op_index = text.index(operator)
+        left_brace = text[op_index:].index(Braces.Left)
+        variables = text[op_index + 1:left_brace].strip()
+        expression = replacements[0][1:-1]
+        return (variables, expression)
 
     lhs, rhs = text.split(" {0} ".format(operator), maxsplit=1)
     separator = "!SEPARATOR!"

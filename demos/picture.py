@@ -7,7 +7,6 @@ from adder import search
 from adder import problem
 
 
-
 EAGLE = r"""
                              /T /I
                               / |/ | .-~/
@@ -37,7 +36,7 @@ EAGLE = r"""
                       /' /\     \  \     ,v=.  ((
                     .^. / /\     "  }__ //===-  `
                    / / ' '  "-.,__ {---(==-       -Row
-                 .^ '       :  T  ~"   ll       
+                 .^ '       :  T  ~"   ll
                 / .  .  . : | :!        \\
                (_/  /   | | j-"          ~^
                  ~-<_(_.^-~"""
@@ -60,7 +59,7 @@ TOUCAN = r"""
   '-...._ (( (('-.._    \ \
          `--..      `'-. \ \
               `..     '   \ \
-                 `\ \fsr   `" 
+                 `\ \fsr   `"
                    \/"""
 
 WINNIE = r"""
@@ -93,6 +92,7 @@ WINNIE = r"""
                '._        '.,___,.;'    '-.___.'
                   `'''----------'`"""
 
+
 def copy_image_part(src, dest, src_coords, dest_coords, length):
     for row in range(length[0]):
         for col in range(length[1]):
@@ -109,9 +109,9 @@ def draw_image(state, image, buffer, size):
         pos = int(pos)
         dest_coords = step_row * (index // size), step_col * (index % size)
         src_coords = step_row * (pos // size), step_col * (pos % size)
-        copy_image_part(buffer, image, src_coords, dest_coords, (step_row, step_col))
+        copy_image_part(buffer, image,
+                        src_coords, dest_coords, (step_row, step_col))
 
-    
     image_lines = "\n".join(["".join(line) for line in image])
     print("*" * 100)
     print(image_lines)
@@ -126,17 +126,16 @@ def main():
     rows = len(lines)
     columns = max(len(line) for line in lines)
     buffer = []
-    for line in lines:  
-        buffer_line = line + " ".join(["" for i in range(columns - len(line) + 1)])
+    for line in lines:
+        whitespaces = columns - len(line) + 1
+        buffer_line = line + " " * whitespaces
         buffer.append(list(buffer_line))
-        
-    
+
     initial, goal = ("4 2 5 3 6 8 1 7 0", "0 1 2 3 4 5 6 7 8")
     factory = problem.ProblemFactory()
     problem_instance = factory.from_npuzzle(initial, goal)
     heuristic = factory.heuristic_for(problem_instance)
 
-    
     size = int(len(goal.replace(" ", "")) ** 0.5)
     step_row = len(buffer) // size
     step_col = len(buffer[0]) // size
@@ -144,7 +143,6 @@ def main():
     for i in range(step_row):
         for j in range(step_col):
             buffer[i][j] = "#"
-
 
     solution = search.astar(problem_instance, heuristic)
     image = deepcopy(buffer)

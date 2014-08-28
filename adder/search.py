@@ -122,8 +122,8 @@ def astar(problem, heuristic):
     return FAILURE
 
 
-def hill_climbing(problem, heuristic, max_sideways_walk,
-                  local_minima_acceptable=False):
+def hill_climbing(problem, max_sideways_walk=100,
+                  local_minima_acceptable=True):
     node = problem.initial
     current_cost = float("inf")
     sideway_moves = 0
@@ -131,7 +131,7 @@ def hill_climbing(problem, heuristic, max_sideways_walk,
         if problem.goal_test(node.state):
             return problem.construct_solution(node)
 
-        hr = lambda action: heuristic(problem.result(node.state, action))
+        hr = lambda action: problem.step_cost(node.state, action)
         best_action = min(problem.actions_iter(node.state), key=hr)
         cost = hr(best_action)
 
@@ -154,10 +154,10 @@ def hill_climbing(problem, heuristic, max_sideways_walk,
         current_cost = cost
 
 
-def random_restart_hc(problem_generator, heuristic,
-                      max_sideways_walk, max_iterations=1 << 31):
+def random_restart(problem_generator,
+                   max_iterations=1 << 31, max_sideways_walk=100):
     for _ in range(max_iterations):
-        solution = hill_climbing(problem_generator(), heuristic,
+        solution = hill_climbing(problem_generator(),
                                  max_sideways_walk)
         if solution != FAILURE:
             return solution
@@ -200,6 +200,8 @@ def simulated_annealing(problem, heuristic,
 
 
 __MUTATION_CHANCE = 0.1
+
+
 def genetic(state_generator,
             fitness_func,
             best_fitness_value,
@@ -238,8 +240,9 @@ def genetic(state_generator,
         population = generation_fitness
         fitness_sum = generation_fitness_sum
 
-    comparer = key=lambda key_value_pair: key_value_pair[1]
+    comparer = key = lambda key_value_pair: key_value_pair[1]
     return max(population, comparer)[0]
+
 
 def __weighted_choice(choices):
     r = random.uniform(0, 1)
