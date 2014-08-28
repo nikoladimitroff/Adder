@@ -6,3 +6,11 @@ class InvalidArgumentError(AdderError):
 
 class ParsingError(AdderError):
     pass
+
+def memoize(func):
+    cache = {}
+    def memoized(arg):
+        if cache.get(arg) is None:
+            cache[arg] = func(arg)
+        return cache[arg]
+    return memoized

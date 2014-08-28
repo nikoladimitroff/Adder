@@ -152,7 +152,7 @@ class Braces:
                     tlb = False
                     replacement_table[replacement_index] += Braces.Right
 
-        replaced = re.sub("{}+".format(Braces.Placeholder),
+        replaced = re.sub("{0}+".format(Braces.Placeholder),
                           Braces.Placeholder, result)
         return (replaced, replacement_table)
 
@@ -313,11 +313,26 @@ def standardize_variables(expression, var="x", use_global=True):
     return result, replacer.replacements
 
 
+class Substituer:
+    def __init__(self, theta):
+        self.theta = theta
+        if len(theta) == 0:
+            self.regex = r"(?!x)x"
+        else:
+            self.regex = r"(\b" + r"\b)|(\b".join(theta.keys()) + r"\b)"
+        self.regex = re.compile(self.regex)
+
+    def __call__(self, match):
+        return self.theta[match.group()]
+
+
 def substitute(expression, theta):
-    for key, value in theta.items():
-        regex = r"\b{0}\b".format(key)
-        expression = re.sub(regex, value, expression)
-    return expression
+    subst = Substituer(theta)
+    return re.sub(subst.regex, subst, expression)
+    #for key, value in theta.items():
+    #    regex = r"\b{0}\b".format(key)
+    #    expression = re.sub(regex, value, expression)
+    #return expression
 
 
 def propagate_substitutions(theta):
@@ -381,17 +396,18 @@ def unify_substitutions(theta1, theta2):
     return theta
 
 
-def __split_expression(expr):
+@utils.memoize
+def __split_expression(expr, cache={}):
     expr = expr.strip()
     left_index = expr.find(Braces.Left)
     if left_index == -1:
-        return None, None
+        return (None, None)
     replaced, table = Braces.replace(expr[left_index + 1: -1])
     separator = "!SEPARATOR!"
     replaced = Braces.restore(replaced.replace(", ", separator), table)
     function = expr[:left_index]
     args = replaced.split(separator)
-    return function, args
+    return (function, args)
 
 
 def find_variables_symbol(expression):

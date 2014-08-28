@@ -150,9 +150,9 @@ class ResolutionTests(unittest.TestCase):
             V x(Enemy(x, America) => Hostile(x))
             American(West)
             Enemy(Nono, America)
-        """, 5, False)
+        """, 5, True)
 
-        #self.assertTrue(kb.ask("Criminal(West)"))
+        self.assert_query(kb, "Criminal(West)", {})
        # print("Who's the criminal?", kb.ask("E x(Criminal(x))"))
 
         kb = fologic.KnowledgeBase("""
@@ -162,7 +162,7 @@ class ResolutionTests(unittest.TestCase):
             Cat(Tuna)
             Kills(Jack, Tuna) | Kills(Curiosity, Tuna)
             V x(Cat(x) => Animal(x))
-        """, 3, False)
+        """, 3, True)
 
         print("Did Curiosity kill Tuna?", kb.ask("Kills(Curiosity, Tuna)"))
         print("Did Curiosity NOT kill Tuna?", kb.ask("!Kills(Curiosity, Tuna)"))
@@ -185,11 +185,3 @@ class ResolutionTests(unittest.TestCase):
         self.assert_query(kb, "E x(Cat(x))", {"x": "Tuna"})
         self.assert_query(kb, "E x(V y(Animal(y)) => Loves(y, x))", {"x": "Jack"})
         self.assert_query(kb, "E x,y(Kills(x, y))", {"x": "Curiosity", "y": "Tuna"})
-
-
-        kb = fologic.KnowledgeBase("""
-            P(A)
-            P(B)
-        """, float("inf"), False)
-
-       # print(kb.ask("V x(P(x))"))

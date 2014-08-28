@@ -75,13 +75,28 @@ def profile_fo_definite_kb():
 
 def profile_fo_resolution():
     kb = fologic.KnowledgeBase("""
+        V x(American(x) & Weapon(y) & Sells(x, y, z) & Hostile(z) => Criminal(x))
+        Owns(Nono, M1)
+        Missile(M1)
+        V x(Missile(x) & Owns(Nono, x) => Sells(West, x, Nono))
+        V x(Missile(x) => Weapon(x))
+        V x(Enemy(x, America) => Hostile(x))
+        American(West)
+        Enemy(Nono, America)
+    """, 5, True)
+
+    print("Is West the criminal?", kb.ask("Criminal(West)"))
+    print("Who's the criminal?", kb.ask("E x(Criminal(x))"))
+    print("Who's there a noncriminal?", kb.ask("E x(!Criminal(x))"))
+
+    kb = fologic.KnowledgeBase("""
         V x(V y(Animal(y) => Loves(x, y)) => E z(Loves(z, x)))
         V x(E y(Animal(y) & Kills(x, y)) => V z(!Loves(z, x)))
         V x(Animal(x) => Loves(x, Jack))
         Cat(Tuna)
         Kills(Jack, Tuna) | Kills(Curiosity, Tuna)
         V x(Cat(x) => Animal(x))
-    """, 3, False)
+    """, 3, True)
 
     print("Did Curiosity kill Tuna?", kb.ask("Kills(Curiosity, Tuna)"))
     print("Did Curiosity NOT kill Tuna?", kb.ask("!Kills(Curiosity, Tuna)"))
@@ -104,7 +119,6 @@ def profile():
 
     profiler = cProfile.Profile()
     profiler.enable()
-
 
     profile_fo_resolution()
 

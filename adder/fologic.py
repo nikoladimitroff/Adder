@@ -69,19 +69,39 @@ def is_subsumed_in(clause, clause_set):
                for disjunction in clause_set)
 
 
+class ClauseBindingMapper:
+    def __init__(self):
+        self.container = defaultdict(list)
+        self.memo = {}
 
-def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
+    def get_from_key(self, c1, c2, i, j):
+        key = (c1, c2, i, j)
+        if self.memo.get(key) is None:
+            self.memo[key] = unify_substitutions(self.container[c1][i],
+                                                 self.container[c2][j])
+        return self.memo[key]
+
+
+    def get_unified_bindings(self, c1, c2):
+        if len(self.container[c1]) == 0: self.container[c1].append({})
+        if len(self.container[c2]) == 0: self.container[c2].append({})
+        return (self.get_from_key(c1, c2, i, j)
+                for i, th1 in enumerate(self.container[c1])
+                for j, th2 in enumerate(self.container[c2]))
+
+
+def resolution_prover(knowledge_base, query, max_clause_len, is_complete):
     negated_query = "{0}({1})".format(LogicOperator.Negation, query)
     not_query_cnf = parse_cnf(negated_query)
     clauses = not_query_cnf + knowledge_base
     new_inferrences = set()
     already_resolved = set()
-    clause_theta_mapping = defaultdict(list)
+    clause_theta_mapping = ClauseBindingMapper()
 
     clauses2 = parse_cnf(query) + knowledge_base
     new_inferrences2 = set()
     already_resolved2 = set()
-    clause_theta_mapping2 = defaultdict(list)
+    clause_theta_mapping2 = ClauseBindingMapper()
 
     empty_set = frozenset()
     support = not_query_cnf
@@ -93,17 +113,21 @@ def resolution_prover(knowledge_base, query, max_clause_len, information_rich):
                                    clause_theta_mapping)
         if result is not None:
             if result[0]:
-                return {var: value for var, value in result[1][0].items()
+                return {var: value for var, value in result[1].items()
                         if var in find_variables_expression(query)}
 
             return problem.FAILURE
 
-        if information_rich:
+        if is_complete:
             result = __resolution_step(new_inferrences2, already_resolved2,
                                        clauses2, max_clause_len,
                                        clause_theta_mapping2)
             if result is not None:
-                return not result
+                if result[0]:
+                    return {var: value for var, value in result[1].items()
+                            if var in find_variables_expression(query)}
+                return problem.FAILURE
+
 
 
 def __resolution_step(new_inferrences, already_resolved,
@@ -118,18 +142,16 @@ def __resolution_step(new_inferrences, already_resolved,
     for c1, c2 in pairs:
         resolvents = __resolve(c1, c2, max_clause_len, clause_mapping)
         if empty_set in resolvents:
-            return True, list(map(propagate_substitutions, clause_mapping[empty_set]))
+            return True, propagate_substitutions(clause_mapping.container[empty_set][0])
 
         new_inferrences.update(resolvents)
         already_resolved.add((c1, c2))
 
-    #print("INFERRED", new_inferrences)
     if new_inferrences.issubset(clauses):
         return False, {}
 
     clauses.extend(clause for clause in new_inferrences
                    if not is_subsumed_in(clause, clauses))
-   # print("CLAUSES", clauses)
 
     return None
 
@@ -146,17 +168,13 @@ def __resolve_single_sided(c1, c2, resolvents, clause_mapping):
     for symbol1 in c1:
         negation = LogicOperator.Negation + symbol1
         for symbol2 in c2:
-            if len(clause_mapping[c1]) == 0: clause_mapping[c1].append({})
-            if len(clause_mapping[c2]) == 0: clause_mapping[c2].append({})
-            for th1 in clause_mapping[c1]:
-                for th2 in clause_mapping[c2]:
-                    th = unify_substitutions(th1, th2)
-                    theta = unify(negation, symbol2, th)
-                    if theta is not problem.FAILURE:
-                        result = c1.union(c2).difference({symbol1, symbol2})
-                        resolvent = __standardize_resolvent(result, theta)
-                        resolvents.append(resolvent)
-                        clause_mapping[resolvent].append(theta)
+            for th in clause_mapping.get_unified_bindings(c1, c2):
+                theta = unify(negation, symbol2, th)
+                if theta is not problem.FAILURE:
+                    result = c1.union(c2).difference({symbol1, symbol2})
+                    resolvent = __standardize_resolvent(result, theta)
+                    resolvents.append(resolvent)
+                    clause_mapping.container[resolvent].append(theta)
 
 
 def __standardize_resolvent(resolvent, theta):
