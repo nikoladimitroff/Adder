@@ -13,17 +13,8 @@ class LogicOperator:
     Equivalence = "<=>"
     Every = "V"
     Exists = "E"
-
-
-LogicOperator.All = [
-    LogicOperator.Equivalence,
-    LogicOperator.Implication,
-    LogicOperator.Disjunction,
-    LogicOperator.Conjuction,
-    LogicOperator.Negation,
-    LogicOperator.Every,
-    LogicOperator.Exists
-]
+    Very = "Very"
+    Fairly = "Fairly"
 
 
 LogicOperator.AllRegex = [
@@ -33,7 +24,9 @@ LogicOperator.AllRegex = [
     (LogicOperator.Conjuction, re.compile(LogicOperator.Conjuction)),
     (LogicOperator.Negation, re.compile(LogicOperator.Negation)),
     (LogicOperator.Every, re.compile(r"\b{0}\b".format(LogicOperator.Every))),
-    (LogicOperator.Exists, re.compile(r"\b{0}\b".format(LogicOperator.Exists)))
+    (LogicOperator.Exists, re.compile(r"\b{0}\b".format(LogicOperator.Exists))),
+    (LogicOperator.Very, re.compile("ASDADADASDASDASD")),
+    (LogicOperator.Fairly, re.compile("ADADAAAAAAAAAAAAAADASDAS"))
 ]
 
 
