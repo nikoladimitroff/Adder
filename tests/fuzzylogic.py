@@ -3,29 +3,62 @@ import unittest
 from adder.fuzzylogic import KnowledgeBase, MembershipSets as sets
 
 class FuzzyLogicTests(unittest.TestCase):
-    def test_inference(self):
+    def __init__(self, *args):
+        unittest.TestCase.__init__(self, *args)
         rules = """
-            funding is Adequate | staffing is Small => risk is Low
-            funding is Marginal & staffing is Large => risk is Normal
-            funding is Inadequate => risk is High
+            distance is Far & ammo is Plenty => desire is Desirable
+            distance is Far & ammo is Ok => desire is Undesirable
+            distance is Far & ammo is Low => desire is Undesirable
+            distance is Medium & ammo is Plenty => desire is VeryDesirable
+            distance is Medium & ammo is Ok => desire is VeryDesirable
+            distance is Medium & ammo is Low => desire is Desirable
+            distance is Close & ammo is Plenty => desire is Undesirable
+            distance is Close & ammo is Ok => desire is Undesirable
+            distance is Close & ammo is Low => desire is Undesirable
         """
 
         variables = {
-            "funding": [
-                ("Adequate", sets.shoulder(80, 60)),
-                ("Marginal", sets.triangle(20, 50, 80)),
-                ("Inadequate", sets.shoulder(20, 30)),
+            "desire": [
+                ("VeryDesirable", sets.shoulder(75, 50)),
+                ("Desirable", sets.triangle(25, 50, 75)),
+                ("Undesirable", sets.shoulder(25, 50)),
             ],
-           # "staffing": [("Small", sets.shoulder(30, , "Large"]
-            "risk": ["Low", "Normal"],
+            "distance": [
+                ("Far", sets.shoulder(300, 150)),
+                ("Medium", sets.triangle(10, 150, 300)),
+                ("Close", sets.shoulder(10, 150)),
+            ],
+            "ammo": [
+                ("Plenty", sets.shoulder(30, 10)),
+                ("Ok", sets.triangle(0, 10, 30)),
+                ("Low", sets.shoulder(0, 10))
+            ],
         }
 
+        max_values = {"desire": 100, "distance": 400, "ammo": 40}
+        self.kb = KnowledgeBase(rules, variables, max_values, accuracy=1000)
+
+    def test_inference(self):
+        result = self.kb.ask(({"distance": 200, "ammo": 8}, "desire"))
+        self.assertAlmostEqual(result, 57.49, 2)
+
+
+    def assert_membership_test(self, var, value, tests):
+        for member_set, expected in tests:
+            self.assertAlmostEqual(self.kb.vars[var][member_set](value),
+                                    expected)
+
     def test_membership_sets(self):
-        funding_tests = [
-            ("Adequate", sets.shoulder(80, 60), 0),
-            ("Marginal", sets.triangle(20, 50, 80), 0.2),
-            ("Inadequate", sets.shoulder(20, 30), 0),
+        distance_tests = [
+            ("Far", 1/3),
         ]
-        value = 35
-        for test in funding_tests:
-            print(test[1](value), test[2])
+
+        ammo_tests = [
+            ("Plenty", 0),
+            ("Ok", 0.8),
+            ("Low", 0.2)
+        ]
+
+        distance, ammo = 200, 8
+        self.assert_membership_test("distance", distance, distance_tests)
+        self.assert_membership_test("ammo", ammo, ammo_tests)
