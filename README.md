@@ -24,9 +24,13 @@ Here's where the library currently stands:
  * Theorem proving in random Propositional Knowledge Bases with several optimizations
 * Classical First-Order Logic:
  * Backwards chaining for Definite Knowledge Bases
+ * General theorem proving for First-Order Knowledge Bases
+* Fuzzy Logic:
+ * Inference
+ * Standard fuzzy sets - triangles, shoulders.
 
 ## Demos
-Currently, there are several demos you can play with. Run them with 
+Currently, there are several demos you can play with. Run them with
 ```python
 python main.py <demo-name> [<demo-args>]
 ```
@@ -38,11 +42,8 @@ where
 
 ## Upcoming features
 
-* Classical First-Order Logic:
- * Theorem proving in random First-Order Knowledge Bases
-* Semantic Networks
-* Planning using Angelic Search and Graphplan
-* Wiki and documentation
+* Probabilistic Knowledge Bases
+* Machine learning
 
 
 [wiki]: https://github.com/NikolaDimitroff/Adder/wiki
